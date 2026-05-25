@@ -62,6 +62,81 @@ void CScene::BuildDefaultLightsAndMaterials()
 	m_pLights[3].m_fTheta = (float)cos(XMConvertToRadians(30.0f));
 }
 
+struct MAZE_MAP_DESC
+{
+	const char *m_pTiles;
+	int m_nWidth;
+	int m_nHeight;
+	XMFLOAT4 m_xmf4FloorColor;
+	XMFLOAT4 m_xmf4RaisedFloorColor;
+	XMFLOAT4 m_xmf4WallColor;
+	XMFLOAT4 m_xmf4StairColor;
+};
+
+static const int MAZE_WIDTH = 11;
+static const int MAZE_HEIGHT = 9;
+static const float MAZE_CELL_SIZE = 20.0f;
+
+static const char g_pMazeMap0[] =
+	"###########"
+	"#S..#.....#"
+	"#.#.#.###.#"
+	"#.#...#...#"
+	"#.###.#.#.#"
+	"#...#...#.#"
+	"###.#.###.#"
+	"#.....^...#"
+	"###########";
+
+static const char g_pMazeMap1[] =
+	"###########"
+	"#S....#...#"
+	"###.#.#.#.#"
+	"#...#...#.#"
+	"#.#####.#.#"
+	"#.#...#.#.#"
+	"#.#.^.#...#"
+	"#...#.....#"
+	"###########";
+
+static const MAZE_MAP_DESC g_pMazeMaps[] =
+{
+	{ g_pMazeMap0, MAZE_WIDTH, MAZE_HEIGHT, XMFLOAT4(0.18f, 0.18f, 0.20f, 1.0f), XMFLOAT4(0.26f, 0.26f, 0.30f, 1.0f), XMFLOAT4(0.62f, 0.18f, 0.16f, 1.0f), XMFLOAT4(0.84f, 0.66f, 0.24f, 1.0f) },
+	{ g_pMazeMap1, MAZE_WIDTH, MAZE_HEIGHT, XMFLOAT4(0.12f, 0.22f, 0.24f, 1.0f), XMFLOAT4(0.14f, 0.34f, 0.36f, 1.0f), XMFLOAT4(0.15f, 0.48f, 0.72f, 1.0f), XMFLOAT4(0.54f, 0.72f, 0.28f, 1.0f) }
+};
+
+static XMFLOAT3 GetMazeCellPosition(int x, int z, int width, int height, float y)
+{
+	return(XMFLOAT3((x - (width - 1) * 0.5f) * MAZE_CELL_SIZE, y, (z - (height - 1) * 0.5f) * MAZE_CELL_SIZE));
+}
+
+static CGameObject *CreateColoredBoxObject(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *pd3dCommandList, const XMFLOAT3& xmf3Position, const XMFLOAT3& xmf3Scale, const XMFLOAT4& xmf4Color)
+{
+	CGameObject *pObject = new CGameObject();
+	pObject->m_nMeshInHierarchy = 0;
+	pObject->SetMesh(new CBoxMesh(pd3dDevice, pd3dCommandList));
+	pObject->m_nMaterials = 1;
+	pObject->m_ppMaterials = new CMaterial*[1];
+	pObject->m_ppMaterials[0] = NULL;
+
+	CMaterial *pMaterial = new CMaterial();
+	CMaterialColors *pMaterialColors = new CMaterialColors();
+	pMaterialColors->m_xmf4Ambient = XMFLOAT4(xmf4Color.x * 0.45f, xmf4Color.y * 0.45f, xmf4Color.z * 0.45f, 1.0f);
+	pMaterialColors->m_xmf4Diffuse = xmf4Color;
+	pMaterialColors->m_xmf4Specular = XMFLOAT4(0.12f, 0.12f, 0.12f, 8.0f);
+	pMaterialColors->m_xmf4Emissive = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+	pMaterial->SetMaterialColors(pMaterialColors);
+	pMaterial->SetIlluminatedShader();
+	pObject->SetMaterial(0, pMaterial);
+
+	pObject->SetScale(xmf3Scale.x, xmf3Scale.y, xmf3Scale.z);
+	pObject->SetPosition(xmf3Position);
+
+	int pnMaterialsInHierarchy[1] = { 1 };
+	pObject->CreateShaderVariables(pd3dDevice, pd3dCommandList, 1, pnMaterialsInHierarchy);
+
+	return(pObject);
+}
 void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *pd3dCommandList)
 {
 	m_pd3dGraphicsRootSignature = CreateGraphicsRootSignature(pd3dDevice);
@@ -70,102 +145,35 @@ void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *p
 
 	BuildDefaultLightsAndMaterials();
 
-	m_nGameObjects = 8;
+	std::vector<CGameObject*> ppObjects;
+	const MAZE_MAP_DESC& map = g_pMazeMaps[0];
+
+	for (int z = 0; z < map.m_nHeight; z++)
+	{
+		for (int x = 0; x < map.m_nWidth; x++)
+		{
+			char tile = map.m_pTiles[z * map.m_nWidth + x];
+			float fFloorHeight = (tile == '^') ? 4.0f : 0.0f;
+			XMFLOAT4 xmf4FloorColor = (tile == '^') ? map.m_xmf4RaisedFloorColor : map.m_xmf4FloorColor;
+			XMFLOAT3 xmf3FloorPosition = GetMazeCellPosition(x, z, map.m_nWidth, map.m_nHeight, fFloorHeight - 1.0f);
+			ppObjects.push_back(CreateColoredBoxObject(pd3dDevice, pd3dCommandList, xmf3FloorPosition, XMFLOAT3(MAZE_CELL_SIZE, 2.0f, MAZE_CELL_SIZE), xmf4FloorColor));
+
+			if (tile == '#')
+			{
+				XMFLOAT3 xmf3WallPosition = GetMazeCellPosition(x, z, map.m_nWidth, map.m_nHeight, 15.0f);
+				ppObjects.push_back(CreateColoredBoxObject(pd3dDevice, pd3dCommandList, xmf3WallPosition, XMFLOAT3(MAZE_CELL_SIZE, 30.0f, MAZE_CELL_SIZE), map.m_xmf4WallColor));
+			}
+			else if (tile == '^')
+			{
+				XMFLOAT3 xmf3StepPosition = GetMazeCellPosition(x, z, map.m_nWidth, map.m_nHeight, 2.0f);
+				ppObjects.push_back(CreateColoredBoxObject(pd3dDevice, pd3dCommandList, xmf3StepPosition, XMFLOAT3(MAZE_CELL_SIZE * 0.65f, 4.0f, MAZE_CELL_SIZE * 0.65f), map.m_xmf4StairColor));
+			}
+		}
+	}
+
+	m_nGameObjects = (int)ppObjects.size();
 	m_ppGameObjects = new CGameObject*[m_nGameObjects];
-
-	int nMeshesInHierarchy = 0;
-	int pnMaterialsInHierarchy[64];
-	CGameObject *pApacheModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Apache.bin", &nMeshesInHierarchy, pnMaterialsInHierarchy);
-
-	CApacheObject* pApacheObject = new CApacheObject();
-	pApacheObject->CreateShaderVariables(pd3dDevice, pd3dCommandList, nMeshesInHierarchy, pnMaterialsInHierarchy);
-	pApacheObject->SetChild(pApacheModel, true);
-	pApacheObject->OnInitialize();
-	pApacheObject->SetPosition(+130.0f, 0.0f, 160.0f);
-	pApacheObject->SetScale(1.5f, 1.5f, 1.5f);
-	pApacheObject->Rotate(0.0f, 90.0f, 0.0f);
-	m_ppGameObjects[0] = pApacheObject;
-
-	pApacheObject = new CApacheObject();
-	pApacheObject->CreateShaderVariables(pd3dDevice, pd3dCommandList, nMeshesInHierarchy, pnMaterialsInHierarchy);
-	pApacheObject->SetChild(pApacheModel, true);
-	pApacheObject->OnInitialize();
-	pApacheObject->SetPosition(-75.0f, 0.0f, 80.0f);
-	pApacheObject->SetScale(1.5f, 1.5f, 1.5f);
-	pApacheObject->Rotate(0.0f, -90.0f, 0.0f);
-	m_ppGameObjects[1] = pApacheObject;
-
-	nMeshesInHierarchy = 0;
-	CGameObject *pGunshipModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Gunship.bin", &nMeshesInHierarchy, pnMaterialsInHierarchy);
-
-	CGunshipObject* pGunshipObject = new CGunshipObject();
-	pGunshipObject->CreateShaderVariables(pd3dDevice, pd3dCommandList, nMeshesInHierarchy, pnMaterialsInHierarchy);
-	pGunshipObject->SetChild(pGunshipModel, true);
-	pGunshipObject->OnInitialize();
-	pGunshipObject->SetPosition(135.0f, 40.0f, 220.0f);
-	pGunshipObject->SetScale(8.5f, 8.5f, 8.5f);
-	pGunshipObject->Rotate(0.0f, -90.0f, 0.0f);
-	m_ppGameObjects[2] = pGunshipObject;
-
-	nMeshesInHierarchy = 0;
-	CGameObject *pSuperCobraModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/SuperCobra.bin", &nMeshesInHierarchy, pnMaterialsInHierarchy);
-
-	CSuperCobraObject* pSuperCobraObject = new CSuperCobraObject();
-	pSuperCobraObject->CreateShaderVariables(pd3dDevice, pd3dCommandList, nMeshesInHierarchy, pnMaterialsInHierarchy);
-	pSuperCobraObject->SetChild(pSuperCobraModel, true);
-	pSuperCobraObject->OnInitialize();
-	pSuperCobraObject->SetPosition(95.0f, 50.0f, 50.0f);
-	pSuperCobraObject->SetScale(4.5f, 4.5f, 4.5f);
-	pSuperCobraObject->Rotate(0.0f, -90.0f, 0.0f);
-	m_ppGameObjects[3] = pSuperCobraObject;
-
-	nMeshesInHierarchy = 0; 
-	CGameObject *pMi24Model = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Mi24.bin", &nMeshesInHierarchy, pnMaterialsInHierarchy);
-
-	CMi24Object* pMi24Object = new CMi24Object();
-	pMi24Object->CreateShaderVariables(pd3dDevice, pd3dCommandList, nMeshesInHierarchy, pnMaterialsInHierarchy);
-	pMi24Object->SetChild(pMi24Model, true);
-	pMi24Object->OnInitialize();
-	pMi24Object->SetPosition(-95.0f, 50.0f, 50.0f);
-	pMi24Object->SetScale(4.5f, 4.5f, 4.5f);
-	pMi24Object->Rotate(0.0f, -90.0f, 0.0f);
-	m_ppGameObjects[4] = pMi24Object;
-
-	nMeshesInHierarchy = 0;
-	CGameObject* pHummerModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Hummer.bin", &nMeshesInHierarchy, pnMaterialsInHierarchy);
-
-	CHummerObject* pHummerObject = new CHummerObject();
-	pHummerObject->CreateShaderVariables(pd3dDevice, pd3dCommandList, nMeshesInHierarchy, pnMaterialsInHierarchy);
-	pHummerObject->SetChild(pHummerModel);
-	pHummerObject->OnInitialize();
-	pHummerObject->SetPosition(260.0f, 0.0f, 150.0f);
-	pHummerObject->SetScale(18.0f, 18.0f, 18.0f);
-	pHummerObject->Rotate(0.0f, -90.0f, 0.0f);
-	m_ppGameObjects[5] = pHummerObject;
-
-	nMeshesInHierarchy = 0;
-	CGameObject* pAbramsModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/M26.bin", &nMeshesInHierarchy, pnMaterialsInHierarchy);
-
-	CM26Object* pTankObject = new CM26Object();
-	pTankObject->CreateShaderVariables(pd3dDevice, pd3dCommandList, nMeshesInHierarchy, pnMaterialsInHierarchy);
-	pTankObject->SetChild(pAbramsModel);
-	pTankObject->OnInitialize();
-	pTankObject->SetPosition(260.0f, 0.0f, 150.0f);
-	pTankObject->SetScale(18.0f, 18.0f, 18.0f);
-	pTankObject->Rotate(0.0f, -90.0f, 0.0f);
-	m_ppGameObjects[6] = pTankObject;
-
-	nMeshesInHierarchy = 0;
-	CGameObject* pEllenModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Ellen.bin", &nMeshesInHierarchy, pnMaterialsInHierarchy);
-
-	CGameObject* pEllenObject = new CGameObject();
-	pEllenObject->CreateShaderVariables(pd3dDevice, pd3dCommandList, nMeshesInHierarchy, pnMaterialsInHierarchy);
-	pEllenObject->SetChild(pEllenModel);
-	pEllenObject->OnInitialize();
-	pEllenObject->SetPosition(70.0f, -15.0f, 10.0f);
-	pEllenObject->SetScale(28.0f, 28.0f, 28.0f);
-	pEllenObject->Rotate(0.0f, 180.0f, 0.0f);
-	m_ppGameObjects[7] = pEllenObject;
+	for (int i = 0; i < m_nGameObjects; i++) m_ppGameObjects[i] = ppObjects[i];
 
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }
@@ -269,24 +277,6 @@ bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam,
 
 bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
-	switch (nMessageID)
-	{
-	case WM_KEYDOWN:
-		switch (wParam)
-		{
-		case 'W': m_ppGameObjects[0]->MoveForward(+1.0f); break;
-		case 'S': m_ppGameObjects[0]->MoveForward(-1.0f); break;
-		case 'A': m_ppGameObjects[0]->MoveStrafe(-1.0f); break;
-		case 'D': m_ppGameObjects[0]->MoveStrafe(+1.0f); break;
-		case 'Q': m_ppGameObjects[0]->MoveUp(+1.0f); break;
-		case 'R': m_ppGameObjects[0]->MoveUp(-1.0f); break;
-		default:
-			break;
-		}
-		break;
-	default:
-		break;
-	}
 	return(false);
 }
 
@@ -330,4 +320,5 @@ void CScene::Render(ID3D12GraphicsCommandList *pd3dCommandList, CCamera *pCamera
 		}
 	}
 }
+
 

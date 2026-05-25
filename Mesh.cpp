@@ -144,3 +144,81 @@ void CMeshIlluminatedFromFile::Render(ID3D12GraphicsCommandList *pd3dCommandList
 		pd3dCommandList->DrawInstanced(m_nVertices, 1, m_nOffset, 0);
 	}
 }
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+//
+CBoxMesh::CBoxMesh(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *pd3dCommandList)
+{
+	m_nVertices = 36;
+	m_nType = VERTEXT_POSITION | VERTEXT_NORMAL;
+
+	XMFLOAT3 pxmf3Positions[36] =
+	{
+		XMFLOAT3(-0.5f, -0.5f, -0.5f), XMFLOAT3(-0.5f, +0.5f, -0.5f), XMFLOAT3(+0.5f, +0.5f, -0.5f),
+		XMFLOAT3(-0.5f, -0.5f, -0.5f), XMFLOAT3(+0.5f, +0.5f, -0.5f), XMFLOAT3(+0.5f, -0.5f, -0.5f),
+
+		XMFLOAT3(+0.5f, -0.5f, -0.5f), XMFLOAT3(+0.5f, +0.5f, -0.5f), XMFLOAT3(+0.5f, +0.5f, +0.5f),
+		XMFLOAT3(+0.5f, -0.5f, -0.5f), XMFLOAT3(+0.5f, +0.5f, +0.5f), XMFLOAT3(+0.5f, -0.5f, +0.5f),
+
+		XMFLOAT3(+0.5f, -0.5f, +0.5f), XMFLOAT3(+0.5f, +0.5f, +0.5f), XMFLOAT3(-0.5f, +0.5f, +0.5f),
+		XMFLOAT3(+0.5f, -0.5f, +0.5f), XMFLOAT3(-0.5f, +0.5f, +0.5f), XMFLOAT3(-0.5f, -0.5f, +0.5f),
+
+		XMFLOAT3(-0.5f, -0.5f, +0.5f), XMFLOAT3(-0.5f, +0.5f, +0.5f), XMFLOAT3(-0.5f, +0.5f, -0.5f),
+		XMFLOAT3(-0.5f, -0.5f, +0.5f), XMFLOAT3(-0.5f, +0.5f, -0.5f), XMFLOAT3(-0.5f, -0.5f, -0.5f),
+
+		XMFLOAT3(-0.5f, +0.5f, -0.5f), XMFLOAT3(-0.5f, +0.5f, +0.5f), XMFLOAT3(+0.5f, +0.5f, +0.5f),
+		XMFLOAT3(-0.5f, +0.5f, -0.5f), XMFLOAT3(+0.5f, +0.5f, +0.5f), XMFLOAT3(+0.5f, +0.5f, -0.5f),
+
+		XMFLOAT3(-0.5f, -0.5f, +0.5f), XMFLOAT3(-0.5f, -0.5f, -0.5f), XMFLOAT3(+0.5f, -0.5f, -0.5f),
+		XMFLOAT3(-0.5f, -0.5f, +0.5f), XMFLOAT3(+0.5f, -0.5f, -0.5f), XMFLOAT3(+0.5f, -0.5f, +0.5f)
+	};
+
+	XMFLOAT3 pxmf3Normals[36] =
+	{
+		XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, -1.0f),
+		XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, -1.0f),
+		XMFLOAT3(+1.0f, 0.0f, 0.0f), XMFLOAT3(+1.0f, 0.0f, 0.0f), XMFLOAT3(+1.0f, 0.0f, 0.0f),
+		XMFLOAT3(+1.0f, 0.0f, 0.0f), XMFLOAT3(+1.0f, 0.0f, 0.0f), XMFLOAT3(+1.0f, 0.0f, 0.0f),
+		XMFLOAT3(0.0f, 0.0f, +1.0f), XMFLOAT3(0.0f, 0.0f, +1.0f), XMFLOAT3(0.0f, 0.0f, +1.0f),
+		XMFLOAT3(0.0f, 0.0f, +1.0f), XMFLOAT3(0.0f, 0.0f, +1.0f), XMFLOAT3(0.0f, 0.0f, +1.0f),
+		XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f),
+		XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f),
+		XMFLOAT3(0.0f, +1.0f, 0.0f), XMFLOAT3(0.0f, +1.0f, 0.0f), XMFLOAT3(0.0f, +1.0f, 0.0f),
+		XMFLOAT3(0.0f, +1.0f, 0.0f), XMFLOAT3(0.0f, +1.0f, 0.0f), XMFLOAT3(0.0f, +1.0f, 0.0f),
+		XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT3(0.0f, -1.0f, 0.0f),
+		XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT3(0.0f, -1.0f, 0.0f)
+	};
+
+	m_pd3dPositionBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, pxmf3Positions, sizeof(pxmf3Positions), D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dPositionUploadBuffer);
+	m_d3dPositionBufferView.BufferLocation = m_pd3dPositionBuffer->GetGPUVirtualAddress();
+	m_d3dPositionBufferView.StrideInBytes = sizeof(XMFLOAT3);
+	m_d3dPositionBufferView.SizeInBytes = sizeof(pxmf3Positions);
+
+	m_pd3dNormalBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, pxmf3Normals, sizeof(pxmf3Normals), D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dNormalUploadBuffer);
+	m_d3dNormalBufferView.BufferLocation = m_pd3dNormalBuffer->GetGPUVirtualAddress();
+	m_d3dNormalBufferView.StrideInBytes = sizeof(XMFLOAT3);
+	m_d3dNormalBufferView.SizeInBytes = sizeof(pxmf3Normals);
+}
+
+CBoxMesh::~CBoxMesh()
+{
+	if (m_pd3dPositionBuffer) m_pd3dPositionBuffer->Release();
+	if (m_pd3dNormalBuffer) m_pd3dNormalBuffer->Release();
+}
+
+void CBoxMesh::ReleaseUploadBuffers()
+{
+	if (m_pd3dPositionUploadBuffer) m_pd3dPositionUploadBuffer->Release();
+	m_pd3dPositionUploadBuffer = NULL;
+
+	if (m_pd3dNormalUploadBuffer) m_pd3dNormalUploadBuffer->Release();
+	m_pd3dNormalUploadBuffer = NULL;
+}
+
+void CBoxMesh::Render(ID3D12GraphicsCommandList *pd3dCommandList, int nSubSet)
+{
+	pd3dCommandList->IASetPrimitiveTopology(m_d3dPrimitiveTopology);
+	D3D12_VERTEX_BUFFER_VIEW pVertexBufferViews[2] = { m_d3dPositionBufferView, m_d3dNormalBufferView };
+	pd3dCommandList->IASetVertexBuffers(m_nSlot, 2, pVertexBufferViews);
+	pd3dCommandList->DrawInstanced(m_nVertices, 1, m_nOffset, 0);
+}

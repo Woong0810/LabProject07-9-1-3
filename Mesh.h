@@ -113,3 +113,24 @@ protected:
 public:
 	virtual void Render(ID3D12GraphicsCommandList *pd3dCommandList, int nSubSet);
 };
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+class CBoxMesh : public CMesh
+{
+public:
+	CBoxMesh(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *pd3dCommandList);
+	virtual ~CBoxMesh();
+
+	virtual void ReleaseUploadBuffers();
+	virtual void Render(ID3D12GraphicsCommandList *pd3dCommandList, int nSubSet);
+
+protected:
+	ID3D12Resource					*m_pd3dPositionBuffer = NULL;
+	ID3D12Resource					*m_pd3dPositionUploadBuffer = NULL;
+	D3D12_VERTEX_BUFFER_VIEW		m_d3dPositionBufferView;
+
+	ID3D12Resource					*m_pd3dNormalBuffer = NULL;
+	ID3D12Resource					*m_pd3dNormalUploadBuffer = NULL;
+	D3D12_VERTEX_BUFFER_VIEW		m_d3dNormalBufferView;
+};
