@@ -71,38 +71,55 @@ struct MAZE_MAP_DESC
 	XMFLOAT4 m_xmf4RaisedFloorColor;
 	XMFLOAT4 m_xmf4WallColor;
 	XMFLOAT4 m_xmf4StairColor;
+	XMFLOAT4 m_xmf4DoorColor;
 };
 
-static const int MAZE_WIDTH = 11;
-static const int MAZE_HEIGHT = 9;
+static const int MAZE_WIDTH = 23;
+static const int MAZE_HEIGHT = 17;
 static const float MAZE_CELL_SIZE = 20.0f;
 
 static const char g_pMazeMap0[] =
-	"###########"
-	"#S..#.....#"
-	"#.#.#.###.#"
-	"#.#...#...#"
-	"#.###.#.#.#"
-	"#...#...#.#"
-	"###.#.###.#"
-	"#.....^...#"
-	"###########";
+	"#######################"
+	"#S....#.....D.....#...#"
+	"#.###.#.#########.#.#.#"
+	"#.#...#.....#.....#.#.#"
+	"#.#.#####.#.#.#####.#.#"
+	"#.#.....#.#.#.....#...#"
+	"#.#####.#.#.#####.###D#"
+	"#.....#...#.....#.....#"
+	"#####.#######.#.#####.#"
+	"#...#.....D...#.....#.#"
+	"#.#.#####.#########.#.#"
+	"#.#.....#.....#.....#.#"
+	"#.#####.#####.#.#####.#"
+	"#.....#.....#.#.....^.#"
+	"###.#.#####.#.#####.###"
+	"#...#.....D.#.........#"
+	"#######################";
 
 static const char g_pMazeMap1[] =
-	"###########"
-	"#S....#...#"
-	"###.#.#.#.#"
-	"#...#...#.#"
-	"#.#####.#.#"
-	"#.#...#.#.#"
-	"#.#.^.#...#"
-	"#...#.....#"
-	"###########";
+	"#######################"
+	"#S....D.....#.........#"
+	"#####.#####.#.#######.#"
+	"#...#.....#.#.....#...#"
+	"#.#.#####.#.#####.#.###"
+	"#.#.....#.#.....#.#...#"
+	"#.#####.#.#####.#.###D#"
+	"#.....#.#.....#.#.....#"
+	"###.#.#.###D###.#####.#"
+	"#...#.#.....#...#.....#"
+	"#.###.#######.###.###.#"
+	"#...#.....#...#...#...#"
+	"###.#####.#.###.###.###"
+	"#.....^...#.....#.....#"
+	"#.###########.#####.#.#"
+	"#.........D.........#.#"
+	"#######################";
 
 static const MAZE_MAP_DESC g_pMazeMaps[] =
 {
-	{ g_pMazeMap0, MAZE_WIDTH, MAZE_HEIGHT, XMFLOAT4(0.18f, 0.18f, 0.20f, 1.0f), XMFLOAT4(0.26f, 0.26f, 0.30f, 1.0f), XMFLOAT4(0.62f, 0.18f, 0.16f, 1.0f), XMFLOAT4(0.84f, 0.66f, 0.24f, 1.0f) },
-	{ g_pMazeMap1, MAZE_WIDTH, MAZE_HEIGHT, XMFLOAT4(0.12f, 0.22f, 0.24f, 1.0f), XMFLOAT4(0.14f, 0.34f, 0.36f, 1.0f), XMFLOAT4(0.15f, 0.48f, 0.72f, 1.0f), XMFLOAT4(0.54f, 0.72f, 0.28f, 1.0f) }
+	{ g_pMazeMap0, MAZE_WIDTH, MAZE_HEIGHT, XMFLOAT4(0.42f, 0.42f, 0.40f, 1.0f), XMFLOAT4(0.54f, 0.54f, 0.50f, 1.0f), XMFLOAT4(0.58f, 0.58f, 0.56f, 1.0f), XMFLOAT4(0.82f, 0.68f, 0.28f, 1.0f), XMFLOAT4(0.00f, 0.88f, 0.82f, 1.0f) },
+	{ g_pMazeMap1, MAZE_WIDTH, MAZE_HEIGHT, XMFLOAT4(0.38f, 0.38f, 0.39f, 1.0f), XMFLOAT4(0.46f, 0.46f, 0.48f, 1.0f), XMFLOAT4(0.08f, 0.12f, 0.58f, 1.0f), XMFLOAT4(0.52f, 0.60f, 0.30f, 1.0f), XMFLOAT4(0.00f, 0.92f, 0.86f, 1.0f) }
 };
 
 static XMFLOAT3 GetMazeCellPosition(int x, int z, int width, int height, float y)
@@ -162,6 +179,13 @@ void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *p
 			{
 				XMFLOAT3 xmf3WallPosition = GetMazeCellPosition(x, z, map.m_nWidth, map.m_nHeight, 15.0f);
 				ppObjects.push_back(CreateColoredBoxObject(pd3dDevice, pd3dCommandList, xmf3WallPosition, XMFLOAT3(MAZE_CELL_SIZE, 30.0f, MAZE_CELL_SIZE), map.m_xmf4WallColor));
+			}
+			else if (tile == 'D')
+			{
+				bool bHorizontalDoor = (x > 0 && x < (map.m_nWidth - 1) && map.m_pTiles[z * map.m_nWidth + (x - 1)] == '#' && map.m_pTiles[z * map.m_nWidth + (x + 1)] == '#');
+				XMFLOAT3 xmf3DoorPosition = GetMazeCellPosition(x, z, map.m_nWidth, map.m_nHeight, 11.0f);
+				XMFLOAT3 xmf3DoorScale = bHorizontalDoor ? XMFLOAT3(MAZE_CELL_SIZE * 0.90f, 22.0f, 4.0f) : XMFLOAT3(4.0f, 22.0f, MAZE_CELL_SIZE * 0.90f);
+				ppObjects.push_back(CreateColoredBoxObject(pd3dDevice, pd3dCommandList, xmf3DoorPosition, xmf3DoorScale, map.m_xmf4DoorColor));
 			}
 			else if (tile == '^')
 			{
@@ -320,5 +344,6 @@ void CScene::Render(ID3D12GraphicsCommandList *pd3dCommandList, CCamera *pCamera
 		}
 	}
 }
+
 
 
