@@ -252,11 +252,11 @@ static void ApplyWeaponPose(CGameObject *pCharacter)
 {
 	if (!pCharacter) return;
 
-	CGameObject *pLeftShoulder = pCharacter->FindFrame("mixamorig:LeftShoulder");
-	if (pLeftShoulder) pLeftShoulder->Rotate(0.0f, 90.0f, 0.0f);
+	CGameObject *pLeftArm = pCharacter->FindFrame("mixamorig:LeftArm");
+	if (pLeftArm) pLeftArm->Rotate(0.0f, 90.0f, 0.0f);
 
-	CGameObject *pRightShoulder = pCharacter->FindFrame("mixamorig:RightShoulder");
-	if (pRightShoulder) pRightShoulder->Rotate(0.0f, -90.0f, 0.0f);
+	CGameObject *pRightArm = pCharacter->FindFrame("mixamorig:RightArm");
+	if (pRightArm) pRightArm->Rotate(0.0f, -90.0f, 0.0f);
 
 	CGameObject *pRightHand = pCharacter->FindFrame("mixamorig:RightHand");
 	if (pRightHand) pRightHand->Rotate(0.0f, 0.0f, -90.0f);
