@@ -243,11 +243,11 @@ CAirplanePlayer::CAirplanePlayer(ID3D12Device *pd3dDevice, ID3D12GraphicsCommand
 
 	int nMeshesInHierarchy = 0;
 	int pnMaterialsInHierarchy[64];
-	//	CGameObject *pGameObject = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/Apache.bin", &nMeshesInHierarchy, pnMaterialsInHierarchy);
-	CGameObject *pModelObject = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/Gunship.bin", &nMeshesInHierarchy, pnMaterialsInHierarchy);
+	CGameObject *pModelObject = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/Ellen.bin", &nMeshesInHierarchy, pnMaterialsInHierarchy);
 
-	pModelObject->Rotate(15.0f, 0.0f, 0.0f);
-	pModelObject->SetScale(8.5f, 8.5f, 8.5f);
+	pModelObject->SetPosition(0.0f, -15.0f, 0.0f);
+	pModelObject->SetScale(28.0f, 28.0f, 28.0f);
+	pModelObject->Rotate(0.0f, 180.0f, 0.0f);
 	SetChild(pModelObject, true);
 
 	OnInitialize();
@@ -298,7 +298,7 @@ CCamera *CAirplanePlayer::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 		case FIRST_PERSON_CAMERA:
 			SetFriction(2.0f);
 			SetGravity(XMFLOAT3(0.0f, 0.0f, 0.0f));
-			SetMaxVelocityXZ(2.5f);
+			SetMaxVelocityXZ(7.5f);
 			SetMaxVelocityY(40.0f);
 			m_pCamera = OnChangeCamera(FIRST_PERSON_CAMERA, nCurrentCameraMode);
 			m_pCamera->SetTimeLag(0.0f);
@@ -310,7 +310,7 @@ CCamera *CAirplanePlayer::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 		case SPACESHIP_CAMERA:
 			SetFriction(100.5f);
 			SetGravity(XMFLOAT3(0.0f, 0.0f, 0.0f));
-			SetMaxVelocityXZ(40.0f);
+			SetMaxVelocityXZ(120.0f);
 			SetMaxVelocityY(40.0f);
 			m_pCamera = OnChangeCamera(SPACESHIP_CAMERA, nCurrentCameraMode);
 			m_pCamera->SetTimeLag(0.0f);
@@ -322,7 +322,7 @@ CCamera *CAirplanePlayer::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 		case THIRD_PERSON_CAMERA:
 			SetFriction(20.5f);
 			SetGravity(XMFLOAT3(0.0f, 0.0f, 0.0f));
-			SetMaxVelocityXZ(25.5f);
+			SetMaxVelocityXZ(76.5f);
 			SetMaxVelocityY(40.0f);
 			m_pCamera = OnChangeCamera(THIRD_PERSON_CAMERA, nCurrentCameraMode);
 			m_pCamera->SetTimeLag(0.25f);
