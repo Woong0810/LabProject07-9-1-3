@@ -465,7 +465,7 @@ void CGameFramework::ProcessInput()
 				else
 					m_pPlayer->Rotate(cyDelta, cxDelta, 0.0f);
 			}
-			if (dwDirection) m_pPlayer->Move(dwDirection, 4.5f, true);
+			if (dwDirection) m_pPlayer->Move(dwDirection, 4.5f, false);
 		}
 	}
 	XMFLOAT3 xmf3OldPlayerPosition = m_pPlayer->GetPosition();
