@@ -76,7 +76,7 @@ struct MAZE_MAP_DESC
 
 static const int MAZE_WIDTH = 23;
 static const int MAZE_HEIGHT = 17;
-static const float MAZE_CELL_SIZE = 20.0f;
+static const float MAZE_CELL_SIZE = 30.0f;
 static const float DOOR_TRIGGER_DISTANCE = 34.0f;
 static const float DOOR_OPEN_SPEED = 2.8f;
 static const float ENEMY_STOP_DISTANCE = 10.0f;
