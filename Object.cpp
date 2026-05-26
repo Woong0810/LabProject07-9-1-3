@@ -372,13 +372,17 @@ float ReadFloatFromFile(FILE* pInFile)
 	return(fValue);
 }
 
-BYTE ReadStringFromFile(FILE* pInFile, char* pstrToken)
+template <size_t nBufferSize>
+BYTE ReadStringFromFile(FILE* pInFile, char (&pstrToken)[nBufferSize])
 {
 	BYTE nStrLength = 0;
 	UINT nReads = 0;
 	nReads = (UINT)::fread(&nStrLength, sizeof(BYTE), 1, pInFile);
-	nReads = (UINT)::fread(pstrToken, sizeof(char), nStrLength, pInFile);
-	pstrToken[nStrLength] = '\0';
+
+	UINT nCopyLength = min((UINT)nStrLength, (UINT)nBufferSize - 1);
+	if (nCopyLength > 0) nReads = (UINT)::fread(pstrToken, sizeof(char), nCopyLength, pInFile);
+	if (nStrLength > nCopyLength) ::fseek(pInFile, nStrLength - nCopyLength, SEEK_CUR);
+	pstrToken[nCopyLength] = '\0';
 
 	return(nStrLength);
 }
