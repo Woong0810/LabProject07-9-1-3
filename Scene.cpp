@@ -228,14 +228,12 @@ static CGameObject *CreateColoredBoxObject(ID3D12Device *pd3dDevice, ID3D12Graph
 
 	return(pObject);
 }
-static CGameObject *CreateModelPreviewObject(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *pd3dCommandList, ID3D12RootSignature *pd3dGraphicsRootSignature, char *pstrFileName, const XMFLOAT3& xmf3Position, const XMFLOAT3& xmf3Scale, const XMFLOAT3& xmf3Rotation)
+static CGameObject *CreateModelPreviewObject(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *pd3dCommandList, ID3D12RootSignature *pd3dGraphicsRootSignature, char *pstrFileName, const XMFLOAT3& xmf3Position, const XMFLOAT3& xmf3Rotation)
 {
 	int nMeshesInHierarchy = 0;
 	int pnMaterialsInHierarchy[64] = { 0 };
 	CGameObject *pObject = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, pstrFileName, &nMeshesInHierarchy, pnMaterialsInHierarchy);
 	if (!pObject) return(NULL);
-
-	pObject->SetScale(xmf3Scale.x, xmf3Scale.y, xmf3Scale.z);
 	pObject->Rotate(xmf3Rotation.x, xmf3Rotation.y, xmf3Rotation.z);
 	pObject->SetPosition(xmf3Position);
 	pObject->CreateShaderVariables(pd3dDevice, pd3dCommandList, nMeshesInHierarchy, pnMaterialsInHierarchy);
@@ -293,13 +291,13 @@ void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *p
 			}
 		}
 	}
-	CGameObject *pCh15Preview = CreateModelPreviewObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Ch15_nonPBR.bin", GetMazeCellPosition(2, 2, map.m_nWidth, map.m_nHeight, 0.0f), XMFLOAT3(18.0f, 18.0f, 18.0f), XMFLOAT3(0.0f, 180.0f, 0.0f));
+	CGameObject *pCh15Preview = CreateModelPreviewObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Ch15_nonPBR.bin", GetMazeCellPosition(2, 2, map.m_nWidth, map.m_nHeight, 0.0f), XMFLOAT3(0.0f, 180.0f, 0.0f));
 	if (pCh15Preview) ppObjects.push_back(pCh15Preview);
 
-	CGameObject *pCh35Preview = CreateModelPreviewObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Ch35_nonPBR.bin", GetMazeCellPosition(4, 2, map.m_nWidth, map.m_nHeight, 0.0f), XMFLOAT3(18.0f, 18.0f, 18.0f), XMFLOAT3(0.0f, 180.0f, 0.0f));
+	CGameObject *pCh35Preview = CreateModelPreviewObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Ch35_nonPBR.bin", GetMazeCellPosition(4, 2, map.m_nWidth, map.m_nHeight, 0.0f), XMFLOAT3(0.0f, 180.0f, 0.0f));
 	if (pCh35Preview) ppObjects.push_back(pCh35Preview);
 
-	CGameObject *pGunPreview = CreateModelPreviewObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/H&K_USP_45_Game.bin", GetMazeCellPosition(3, 3, map.m_nWidth, map.m_nHeight, 8.0f), XMFLOAT3(5.0f, 5.0f, 5.0f), XMFLOAT3(0.0f, 90.0f, 0.0f));
+	CGameObject *pGunPreview = CreateModelPreviewObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/H&K_USP_45_Game.bin", GetMazeCellPosition(3, 3, map.m_nWidth, map.m_nHeight, 8.0f), XMFLOAT3(0.0f, 90.0f, 0.0f));
 	if (pGunPreview) ppObjects.push_back(pGunPreview);
 
 	m_nGameObjects = (int)ppObjects.size();
