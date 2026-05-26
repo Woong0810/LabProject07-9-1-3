@@ -77,6 +77,10 @@ struct MAZE_MAP_DESC
 static const int MAZE_WIDTH = 23;
 static const int MAZE_HEIGHT = 17;
 static const float MAZE_CELL_SIZE = 20.0f;
+static const float DOOR_TRIGGER_DISTANCE = 34.0f;
+static const float DOOR_OPEN_SPEED = 2.8f;
+static const float ENEMY_STOP_DISTANCE = 10.0f;
+static const float ENEMY_RADIUS = 5.0f;
 
 static const char g_pMazeMap0[] =
 	"#######################"
@@ -166,21 +170,12 @@ static char GetMazeTileAtWorld(float x, float z, const MAZE_MAP_DESC& map)
 
 static bool IsBlockingTile(char tile)
 {
-	return((tile == '#') || (tile == 'D') || (tile == 'H'));
+	return((tile == '#') || (tile == 'H'));
 }
 
 static bool IsBlockedAtWorld(float x, float z, const MAZE_MAP_DESC& map)
 {
 	return(IsBlockingTile(GetMazeTileAtWorld(x, z, map)));
-}
-
-static bool IsPlayerBlockedAtWorld(float x, float z, const MAZE_MAP_DESC& map)
-{
-	const float fPlayerRadius = 6.0f;
-	return(IsBlockedAtWorld(x - fPlayerRadius, z - fPlayerRadius, map) ||
-		IsBlockedAtWorld(x + fPlayerRadius, z - fPlayerRadius, map) ||
-		IsBlockedAtWorld(x - fPlayerRadius, z + fPlayerRadius, map) ||
-		IsBlockedAtWorld(x + fPlayerRadius, z + fPlayerRadius, map));
 }
 
 static float GetMazeFloorHeight(float x, float z, const MAZE_MAP_DESC& map)
@@ -228,7 +223,7 @@ static CGameObject *CreateColoredBoxObject(ID3D12Device *pd3dDevice, ID3D12Graph
 
 	return(pObject);
 }
-static CGameObject *CreateModelPreviewObject(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *pd3dCommandList, ID3D12RootSignature *pd3dGraphicsRootSignature, char *pstrFileName, const XMFLOAT3& xmf3Position, const XMFLOAT3& xmf3Rotation)
+static CGameObject *CreateLoadedModelObject(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *pd3dCommandList, ID3D12RootSignature *pd3dGraphicsRootSignature, char *pstrFileName, const XMFLOAT3& xmf3Position, const XMFLOAT3& xmf3Rotation)
 {
 	int nMeshesInHierarchy = 0;
 	int pnMaterialsInHierarchy[64] = { 0 };
@@ -239,6 +234,53 @@ static CGameObject *CreateModelPreviewObject(ID3D12Device *pd3dDevice, ID3D12Gra
 	pObject->CreateShaderVariables(pd3dDevice, pd3dCommandList, nMeshesInHierarchy, pnMaterialsInHierarchy);
 	return(pObject);
 }
+
+static float DistanceXZ(const XMFLOAT3& a, const XMFLOAT3& b)
+{
+	float dx = a.x - b.x;
+	float dz = a.z - b.z;
+	return(sqrtf((dx * dx) + (dz * dz)));
+}
+
+static bool IsEnemyBlockedAtWorld(float x, float z, const MAZE_MAP_DESC& map)
+{
+	return(IsBlockedAtWorld(x - ENEMY_RADIUS, z - ENEMY_RADIUS, map) ||
+		IsBlockedAtWorld(x + ENEMY_RADIUS, z - ENEMY_RADIUS, map) ||
+		IsBlockedAtWorld(x - ENEMY_RADIUS, z + ENEMY_RADIUS, map) ||
+		IsBlockedAtWorld(x + ENEMY_RADIUS, z + ENEMY_RADIUS, map));
+}
+
+bool CScene::IsPlayerBlockedAtWorld(float x, float z)
+{
+	const MAZE_MAP_DESC& map = g_pMazeMaps[0];
+	const float fPlayerRadius = 6.0f;
+	const float px[4] = { x - fPlayerRadius, x + fPlayerRadius, x - fPlayerRadius, x + fPlayerRadius };
+	const float pz[4] = { z - fPlayerRadius, z - fPlayerRadius, z + fPlayerRadius, z + fPlayerRadius };
+
+	for (int i = 0; i < 4; i++)
+	{
+		int nCellX = WorldToMazeCellX(px[i], map);
+		int nCellZ = WorldToMazeCellZ(pz[i], map);
+		if (!IsInsideMazeCell(nCellX, nCellZ, map)) return(true);
+
+		char tile = map.m_pTiles[nCellZ * map.m_nWidth + nCellX];
+		if (IsBlockingTile(tile)) return(true);
+		if (tile == 'D')
+		{
+			bool bOpen = false;
+			for (size_t j = 0; j < m_vDoors.size(); j++)
+			{
+				if ((m_vDoors[j].m_nCellX == nCellX) && (m_vDoors[j].m_nCellZ == nCellZ))
+				{
+					bOpen = (m_vDoors[j].m_fOpenAmount > 0.78f);
+					break;
+				}
+			}
+			if (!bOpen) return(true);
+		}
+	}
+	return(false);
+}
 void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *pd3dCommandList)
 {
 	m_pd3dGraphicsRootSignature = CreateGraphicsRootSignature(pd3dDevice);
@@ -246,6 +288,9 @@ void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *p
 	CMaterial::PrepareShaders(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
 
 	BuildDefaultLightsAndMaterials();
+
+	m_vDoors.clear();
+	m_vEnemies.clear();
 
 	std::vector<CGameObject*> ppObjects;
 	const MAZE_MAP_DESC& map = g_pMazeMaps[0];
@@ -276,7 +321,17 @@ void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *p
 				bool bHorizontalDoor = (x > 0 && x < (map.m_nWidth - 1) && map.m_pTiles[z * map.m_nWidth + (x - 1)] == '#' && map.m_pTiles[z * map.m_nWidth + (x + 1)] == '#');
 				XMFLOAT3 xmf3DoorPosition = GetMazeCellPosition(x, z, map.m_nWidth, map.m_nHeight, fFloorHeight + 11.0f);
 				XMFLOAT3 xmf3DoorScale = bHorizontalDoor ? XMFLOAT3(MAZE_CELL_SIZE * 0.90f, 22.0f, 4.0f) : XMFLOAT3(4.0f, 22.0f, MAZE_CELL_SIZE * 0.90f);
-				ppObjects.push_back(CreateColoredBoxObject(pd3dDevice, pd3dCommandList, xmf3DoorPosition, xmf3DoorScale, map.m_xmf4DoorColor));
+				CGameObject *pDoorObject = CreateColoredBoxObject(pd3dDevice, pd3dCommandList, xmf3DoorPosition, xmf3DoorScale, map.m_xmf4DoorColor);
+				ppObjects.push_back(pDoorObject);
+
+				DOOR_OBJECT door;
+				door.m_pObject = pDoorObject;
+				door.m_nCellX = x;
+				door.m_nCellZ = z;
+				door.m_bHorizontal = bHorizontalDoor;
+				door.m_fFloorHeight = fFloorHeight;
+				door.m_xmf3ClosedPosition = xmf3DoorPosition;
+				m_vDoors.push_back(door);
 			}
 			else if (tile == '^')
 			{
@@ -291,13 +346,23 @@ void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *p
 			}
 		}
 	}
-	CGameObject *pCh15Preview = CreateModelPreviewObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Ch15_nonPBR.bin", GetMazeCellPosition(2, 2, map.m_nWidth, map.m_nHeight, 0.0f), XMFLOAT3(0.0f, 180.0f, 0.0f));
-	if (pCh15Preview) ppObjects.push_back(pCh15Preview);
+	const int pnEnemyCells[][2] = { { 16, 2 }, { 7, 7 }, { 18, 13 } };
+	for (int i = 0; i < _countof(pnEnemyCells); i++)
+	{
+		XMFLOAT3 xmf3EnemyCellPosition = GetMazeCellPosition(pnEnemyCells[i][0], pnEnemyCells[i][1], map.m_nWidth, map.m_nHeight, 0.0f);
+		xmf3EnemyCellPosition.y = GetMazeFloorHeight(xmf3EnemyCellPosition.x, xmf3EnemyCellPosition.z, map);
+		CGameObject *pEnemyObject = CreateLoadedModelObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Ch35_nonPBR.bin", xmf3EnemyCellPosition, XMFLOAT3(0.0f, 180.0f, 0.0f));
+		if (pEnemyObject)
+		{
+			ppObjects.push_back(pEnemyObject);
+			ENEMY_OBJECT enemy;
+			enemy.m_pObject = pEnemyObject;
+			enemy.m_fMoveSpeed = 18.0f;
+			m_vEnemies.push_back(enemy);
+		}
+	}
 
-	CGameObject *pCh35Preview = CreateModelPreviewObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Ch35_nonPBR.bin", GetMazeCellPosition(4, 2, map.m_nWidth, map.m_nHeight, 0.0f), XMFLOAT3(0.0f, 180.0f, 0.0f));
-	if (pCh35Preview) ppObjects.push_back(pCh35Preview);
-
-	CGameObject *pGunPreview = CreateModelPreviewObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/H&K_USP_45_Game.bin", GetMazeCellPosition(3, 3, map.m_nWidth, map.m_nHeight, 8.0f), XMFLOAT3(0.0f, 90.0f, 0.0f));
+	CGameObject *pGunPreview = CreateLoadedModelObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/H&K_USP_45_Game.bin", GetMazeCellPosition(3, 3, map.m_nWidth, map.m_nHeight, 8.0f), XMFLOAT3(0.0f, 90.0f, 0.0f));
 	if (pGunPreview) ppObjects.push_back(pGunPreview);
 
 	m_nGameObjects = (int)ppObjects.size();
@@ -318,6 +383,8 @@ void CScene::ReleaseObjects()
 		for (int i = 0; i < m_nGameObjects; i++) if (m_ppGameObjects[i]) m_ppGameObjects[i]->Release();
 		delete[] m_ppGameObjects;
 	}
+	m_vDoors.clear();
+	m_vEnemies.clear();
 
 	if (m_pLights) delete[] m_pLights;
 }
@@ -370,7 +437,7 @@ ID3D12RootSignature *CScene::CreateGraphicsRootSignature(ID3D12Device *pd3dDevic
 
 void CScene::CreateShaderVariables(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *pd3dCommandList)
 {
-	UINT ncbElementBytes = ((sizeof(LIGHTS) + 255) & ~255); //256ÀÇ ¹è¼ö
+	UINT ncbElementBytes = ((sizeof(LIGHTS) + 255) & ~255); //256?? ???
 	m_pd3dcbLights = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
 
 	m_pd3dcbLights->Map(0, NULL, (void **)&m_pcbMappedLights);
@@ -420,6 +487,59 @@ void CScene::AnimateObjects(float fTimeElapsed)
 
 	for (int i = 0; i < m_nGameObjects; i++) m_ppGameObjects[i]->Animate(fTimeElapsed, NULL);
 
+	const MAZE_MAP_DESC& map = g_pMazeMaps[0];
+	XMFLOAT3 xmf3PlayerPosition = (m_pPlayer) ? m_pPlayer->GetPosition() : XMFLOAT3(0.0f, 0.0f, 0.0f);
+
+	for (size_t i = 0; i < m_vDoors.size(); i++)
+	{
+		DOOR_OBJECT& door = m_vDoors[i];
+		XMFLOAT3 xmf3DoorCell = GetMazeCellPosition(door.m_nCellX, door.m_nCellZ, map.m_nWidth, map.m_nHeight, door.m_fFloorHeight);
+		float fTargetOpen = (DistanceXZ(xmf3DoorCell, xmf3PlayerPosition) < DOOR_TRIGGER_DISTANCE) ? 1.0f : 0.0f;
+		float fDelta = DOOR_OPEN_SPEED * fTimeElapsed;
+
+		if (door.m_fOpenAmount < fTargetOpen)
+		{
+			door.m_fOpenAmount += fDelta;
+			if (door.m_fOpenAmount > fTargetOpen) door.m_fOpenAmount = fTargetOpen;
+		}
+		else if (door.m_fOpenAmount > fTargetOpen)
+		{
+			door.m_fOpenAmount -= fDelta;
+			if (door.m_fOpenAmount < fTargetOpen) door.m_fOpenAmount = fTargetOpen;
+		}
+
+		XMFLOAT3 xmf3DoorPosition = door.m_xmf3ClosedPosition;
+		float fSlide = MAZE_CELL_SIZE * 0.85f * door.m_fOpenAmount;
+		if (door.m_bHorizontal) xmf3DoorPosition.x += fSlide;
+		else xmf3DoorPosition.z += fSlide;
+		if (door.m_pObject) door.m_pObject->SetPosition(xmf3DoorPosition);
+	}
+
+	for (size_t i = 0; i < m_vEnemies.size(); i++)
+	{
+		ENEMY_OBJECT& enemy = m_vEnemies[i];
+		if (!enemy.m_pObject || !m_pPlayer) continue;
+
+		XMFLOAT3 xmf3EnemyPosition = enemy.m_pObject->GetPosition();
+		XMFLOAT3 xmf3Direction = XMFLOAT3(xmf3PlayerPosition.x - xmf3EnemyPosition.x, 0.0f, xmf3PlayerPosition.z - xmf3EnemyPosition.z);
+		float fDistance = Vector3::Length(xmf3Direction);
+		if (fDistance <= ENEMY_STOP_DISTANCE) continue;
+
+		xmf3Direction = Vector3::Normalize(xmf3Direction);
+		float fMoveDistance = enemy.m_fMoveSpeed * fTimeElapsed;
+		if (fMoveDistance > (fDistance - ENEMY_STOP_DISTANCE)) fMoveDistance = fDistance - ENEMY_STOP_DISTANCE;
+
+		XMFLOAT3 xmf3ResolvedPosition = xmf3EnemyPosition;
+		xmf3ResolvedPosition.x += xmf3Direction.x * fMoveDistance;
+		if (IsEnemyBlockedAtWorld(xmf3ResolvedPosition.x, xmf3ResolvedPosition.z, map)) xmf3ResolvedPosition.x = xmf3EnemyPosition.x;
+
+		xmf3ResolvedPosition.z += xmf3Direction.z * fMoveDistance;
+		if (IsEnemyBlockedAtWorld(xmf3ResolvedPosition.x, xmf3ResolvedPosition.z, map)) xmf3ResolvedPosition.z = xmf3EnemyPosition.z;
+
+		xmf3ResolvedPosition.y = GetMazeFloorHeight(xmf3ResolvedPosition.x, xmf3ResolvedPosition.z, map);
+		enemy.m_pObject->SetPosition(xmf3ResolvedPosition);
+	}
+
 	if (m_pLights)
 	{
 		m_pLights[1].m_xmf3Position = m_pPlayer->GetPosition();
@@ -436,10 +556,10 @@ void CScene::ResolvePlayerCollision(CPlayer *pPlayer, const XMFLOAT3& xmf3OldPos
 	XMFLOAT3 xmf3ResolvedPosition = xmf3OldPosition;
 
 	xmf3ResolvedPosition.x = xmf3Position.x;
-	if (IsPlayerBlockedAtWorld(xmf3ResolvedPosition.x, xmf3ResolvedPosition.z, map)) xmf3ResolvedPosition.x = xmf3OldPosition.x;
+	if (IsPlayerBlockedAtWorld(xmf3ResolvedPosition.x, xmf3ResolvedPosition.z)) xmf3ResolvedPosition.x = xmf3OldPosition.x;
 
 	xmf3ResolvedPosition.z = xmf3Position.z;
-	if (IsPlayerBlockedAtWorld(xmf3ResolvedPosition.x, xmf3ResolvedPosition.z, map)) xmf3ResolvedPosition.z = xmf3OldPosition.z;
+	if (IsPlayerBlockedAtWorld(xmf3ResolvedPosition.x, xmf3ResolvedPosition.z)) xmf3ResolvedPosition.z = xmf3OldPosition.z;
 
 	xmf3ResolvedPosition.y = GetMazeFloorHeight(xmf3ResolvedPosition.x, xmf3ResolvedPosition.z, map) + 8.0f;
 	pPlayer->SetPosition(xmf3ResolvedPosition);

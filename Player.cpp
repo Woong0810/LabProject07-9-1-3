@@ -223,10 +223,9 @@ CAirplanePlayer::CAirplanePlayer(ID3D12Device *pd3dDevice, ID3D12GraphicsCommand
 
 	int nMeshesInHierarchy = 0;
 	int pnMaterialsInHierarchy[64];
-	CGameObject *pModelObject = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/Ellen.bin", &nMeshesInHierarchy, pnMaterialsInHierarchy);
+	CGameObject *pModelObject = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/Ch15_nonPBR.bin", &nMeshesInHierarchy, pnMaterialsInHierarchy);
 
 	pModelObject->SetPosition(0.0f, -8.0f, 0.0f);
-	pModelObject->SetScale(28.0f, 28.0f, 28.0f);
 	pModelObject->Rotate(0.0f, 180.0f, 0.0f);
 	SetChild(pModelObject, true);
 

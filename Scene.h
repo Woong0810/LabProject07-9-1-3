@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <vector>
+
 #include "Shader.h"
 #include "Player.h"
 
@@ -37,6 +39,23 @@ struct LIGHTS
 	int						m_nLights;
 };
 
+struct DOOR_OBJECT
+{
+	CGameObject				*m_pObject = NULL;
+	int						m_nCellX = 0;
+	int						m_nCellZ = 0;
+	bool					m_bHorizontal = false;
+	float					m_fFloorHeight = 0.0f;
+	float					m_fOpenAmount = 0.0f;
+	XMFLOAT3				m_xmf3ClosedPosition = XMFLOAT3(0.0f, 0.0f, 0.0f);
+};
+
+struct ENEMY_OBJECT
+{
+	CGameObject				*m_pObject = NULL;
+	float					m_fMoveSpeed = 18.0f;
+};
+
 class CScene
 {
 public:
@@ -63,6 +82,7 @@ public:
 
 	void ReleaseUploadBuffers();
 	void ResolvePlayerCollision(CPlayer *pPlayer, const XMFLOAT3& xmf3OldPosition, bool bFreeFlyMode);
+	bool IsPlayerBlockedAtWorld(float x, float z);
 
 	CPlayer						*m_pPlayer = NULL;
 
@@ -71,6 +91,9 @@ public:
 
 	CGameObject					**m_ppGameObjects = NULL;
 	int							m_nGameObjects = 0;
+
+	std::vector<DOOR_OBJECT>	m_vDoors;
+	std::vector<ENEMY_OBJECT>	m_vEnemies;
 
 	LIGHT						*m_pLights = NULL;
 	int							m_nLights = 0;
