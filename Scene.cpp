@@ -414,28 +414,16 @@ void CScene::ResolvePlayerCollision(CPlayer *pPlayer, const XMFLOAT3& xmf3OldPos
 
 	const MAZE_MAP_DESC& map = g_pMazeMaps[0];
 	XMFLOAT3 xmf3Position = pPlayer->GetPosition();
+	XMFLOAT3 xmf3ResolvedPosition = xmf3OldPosition;
 
-	if (IsPlayerBlockedAtWorld(xmf3Position.x, xmf3Position.z, map))
-	{
-		XMFLOAT3 xmf3ResolvedPosition = xmf3Position;
+	xmf3ResolvedPosition.x = xmf3Position.x;
+	if (IsPlayerBlockedAtWorld(xmf3ResolvedPosition.x, xmf3ResolvedPosition.z, map)) xmf3ResolvedPosition.x = xmf3OldPosition.x;
 
-		xmf3ResolvedPosition.x = xmf3OldPosition.x;
-		if (IsPlayerBlockedAtWorld(xmf3ResolvedPosition.x, xmf3ResolvedPosition.z, map))
-		{
-			xmf3ResolvedPosition.x = xmf3Position.x;
-			xmf3ResolvedPosition.z = xmf3OldPosition.z;
-		}
-		if (IsPlayerBlockedAtWorld(xmf3ResolvedPosition.x, xmf3ResolvedPosition.z, map))
-		{
-			xmf3ResolvedPosition.x = xmf3OldPosition.x;
-			xmf3ResolvedPosition.z = xmf3OldPosition.z;
-		}
+	xmf3ResolvedPosition.z = xmf3Position.z;
+	if (IsPlayerBlockedAtWorld(xmf3ResolvedPosition.x, xmf3ResolvedPosition.z, map)) xmf3ResolvedPosition.z = xmf3OldPosition.z;
 
-		xmf3Position = xmf3ResolvedPosition;
-	}
-
-	xmf3Position.y = GetMazeFloorHeight(xmf3Position.x, xmf3Position.z, map) + 8.0f;
-	pPlayer->SetPosition(xmf3Position);
+	xmf3ResolvedPosition.y = GetMazeFloorHeight(xmf3ResolvedPosition.x, xmf3ResolvedPosition.z, map) + 8.0f;
+	pPlayer->SetPosition(xmf3ResolvedPosition);
 }
 void CScene::Render(ID3D12GraphicsCommandList *pd3dCommandList, CCamera *pCamera)
 {

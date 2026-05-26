@@ -432,6 +432,8 @@ void CGameFramework::ReleaseObjects()
 
 void CGameFramework::ProcessInput()
 {
+	XMFLOAT3 xmf3OldPlayerPosition = m_pPlayer->GetPosition();
+
 	static UCHAR pKeysBuffer[256];
 	bool bProcessedByScene = false;
 	if (GetKeyboardState(pKeysBuffer) && m_pScene) bProcessedByScene = m_pScene->ProcessInput(pKeysBuffer);
@@ -468,7 +470,6 @@ void CGameFramework::ProcessInput()
 			if (dwDirection) m_pPlayer->Move(dwDirection, 1.5f, false);
 		}
 	}
-	XMFLOAT3 xmf3OldPlayerPosition = m_pPlayer->GetPosition();
 	m_pPlayer->Update(m_GameTimer.GetTimeElapsed());
 	if (m_pScene) m_pScene->ResolvePlayerCollision(m_pPlayer, xmf3OldPlayerPosition, m_bFreeFlyMode);
 }
