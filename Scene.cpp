@@ -379,7 +379,7 @@ void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *p
 	{
 		XMFLOAT3 xmf3EnemyCellPosition = GetMazeCellPosition(pnEnemyCells[i][0], pnEnemyCells[i][1], map.m_nWidth, map.m_nHeight, 0.0f);
 		xmf3EnemyCellPosition.y = GetMazeFloorHeight(xmf3EnemyCellPosition.x, xmf3EnemyCellPosition.z, map);
-		CGameObject *pEnemyObject = CreateArmedCharacterObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/SoldierFinalAnimations.bin", xmf3EnemyCellPosition, XMFLOAT3(0.0f, 0.0f, 0.0f));
+		CGameObject *pEnemyObject = CreateArmedCharacterObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Soldier_Aiming_Baked.bin", xmf3EnemyCellPosition, XMFLOAT3(0.0f, 0.0f, 0.0f));
 		if (pEnemyObject)
 		{
 			ppObjects.push_back(pEnemyObject);

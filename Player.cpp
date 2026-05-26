@@ -223,7 +223,7 @@ CAirplanePlayer::CAirplanePlayer(ID3D12Device *pd3dDevice, ID3D12GraphicsCommand
 
 	int nMeshesInHierarchy = 0;
 	int pnMaterialsInHierarchy[64] = { 0 };
-	CGameObject *pModelObject = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/SoldierFinalAnimations.bin", &nMeshesInHierarchy, pnMaterialsInHierarchy);
+	CGameObject *pModelObject = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/Soldier_Aiming_Baked.bin", &nMeshesInHierarchy, pnMaterialsInHierarchy);
 
 	pModelObject->SetPosition(0.0f, -8.0f, 0.0f);
 
