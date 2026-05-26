@@ -184,11 +184,16 @@ void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *p
 		for (int x = 0; x < map.m_nWidth; x++)
 		{
 			char tile = map.m_pTiles[z * map.m_nWidth + x];
+			XMFLOAT3 xmf3BaseFloorPosition = GetMazeCellPosition(x, z, map.m_nWidth, map.m_nHeight, -1.0f);
+			ppObjects.push_back(CreateColoredBoxObject(pd3dDevice, pd3dCommandList, xmf3BaseFloorPosition, XMFLOAT3(MAZE_CELL_SIZE, 2.0f, MAZE_CELL_SIZE), map.m_xmf4FloorColor));
+
 			bool bSecondFloor = IsSecondFloorTile(tile) || IsSecondFloorDoor(map, x, z);
 			float fFloorHeight = bSecondFloor ? 30.0f : 0.0f;
-			XMFLOAT4 xmf4FloorColor = bSecondFloor ? map.m_xmf4RaisedFloorColor : map.m_xmf4FloorColor;
-			XMFLOAT3 xmf3FloorPosition = GetMazeCellPosition(x, z, map.m_nWidth, map.m_nHeight, fFloorHeight - 1.0f);
-			ppObjects.push_back(CreateColoredBoxObject(pd3dDevice, pd3dCommandList, xmf3FloorPosition, XMFLOAT3(MAZE_CELL_SIZE, 2.0f, MAZE_CELL_SIZE), xmf4FloorColor));
+			if (bSecondFloor)
+			{
+				XMFLOAT3 xmf3RaisedFloorPosition = GetMazeCellPosition(x, z, map.m_nWidth, map.m_nHeight, fFloorHeight - 1.0f);
+				ppObjects.push_back(CreateColoredBoxObject(pd3dDevice, pd3dCommandList, xmf3RaisedFloorPosition, XMFLOAT3(MAZE_CELL_SIZE, 2.0f, MAZE_CELL_SIZE), map.m_xmf4RaisedFloorColor));
+			}
 
 			if ((tile == '#') || (tile == 'H'))
 			{
@@ -365,6 +370,8 @@ void CScene::Render(ID3D12GraphicsCommandList *pd3dCommandList, CCamera *pCamera
 		}
 	}
 }
+
+
 
 
 
