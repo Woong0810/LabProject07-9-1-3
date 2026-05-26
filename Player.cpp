@@ -278,7 +278,6 @@ CAirplanePlayer::CAirplanePlayer(ID3D12Device *pd3dDevice, ID3D12GraphicsCommand
 	CopyMaterialCounts(pnMaterialsInHierarchy, nMeshesInHierarchy, pnGunMaterialsInHierarchy, nGunMeshesInHierarchy);
 	nMeshesInHierarchy += nGunMeshesInHierarchy;
 
-	pModelObject->Rotate(0.0f, 180.0f, 0.0f);
 	SetChild(pModelObject, true);
 
 	OnInitialize();

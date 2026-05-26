@@ -301,6 +301,21 @@ static float DistanceXZ(const XMFLOAT3& a, const XMFLOAT3& b)
 	return(sqrtf((dx * dx) + (dz * dz)));
 }
 
+static void SetObjectLookDirectionXZ(CGameObject *pObject, const XMFLOAT3& xmf3Position, const XMFLOAT3& xmf3Look)
+{
+	if (!pObject) return;
+
+	XMFLOAT3 xmf3FlatLook = Vector3::Normalize(XMFLOAT3(xmf3Look.x, 0.0f, xmf3Look.z));
+	XMFLOAT3 xmf3Up = XMFLOAT3(0.0f, 1.0f, 0.0f);
+	XMFLOAT3 xmf3Right = Vector3::CrossProduct(xmf3Up, xmf3FlatLook, true);
+
+	pObject->m_xmf4x4Transform._11 = xmf3Right.x; pObject->m_xmf4x4Transform._12 = xmf3Right.y; pObject->m_xmf4x4Transform._13 = xmf3Right.z;
+	pObject->m_xmf4x4Transform._21 = xmf3Up.x; pObject->m_xmf4x4Transform._22 = xmf3Up.y; pObject->m_xmf4x4Transform._23 = xmf3Up.z;
+	pObject->m_xmf4x4Transform._31 = xmf3FlatLook.x; pObject->m_xmf4x4Transform._32 = xmf3FlatLook.y; pObject->m_xmf4x4Transform._33 = xmf3FlatLook.z;
+	pObject->m_xmf4x4Transform._41 = xmf3Position.x; pObject->m_xmf4x4Transform._42 = xmf3Position.y; pObject->m_xmf4x4Transform._43 = xmf3Position.z;
+	pObject->UpdateTransform(NULL);
+}
+
 static bool IsEnemyBlockedAtWorld(float x, float z, const MAZE_MAP_DESC& map)
 {
 	return(IsBlockedAtWorld(x - ENEMY_RADIUS, z - ENEMY_RADIUS, map) ||
@@ -410,7 +425,7 @@ void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *p
 	{
 		XMFLOAT3 xmf3EnemyCellPosition = GetMazeCellPosition(pnEnemyCells[i][0], pnEnemyCells[i][1], map.m_nWidth, map.m_nHeight, 0.0f);
 		xmf3EnemyCellPosition.y = GetMazeFloorHeight(xmf3EnemyCellPosition.x, xmf3EnemyCellPosition.z, map);
-		CGameObject *pEnemyObject = CreateArmedCharacterObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Ch35_nonPBR.bin", xmf3EnemyCellPosition, XMFLOAT3(0.0f, 180.0f, 0.0f));
+		CGameObject *pEnemyObject = CreateArmedCharacterObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Ch35_nonPBR.bin", xmf3EnemyCellPosition, XMFLOAT3(0.0f, 0.0f, 0.0f));
 		if (pEnemyObject)
 		{
 			ppObjects.push_back(pEnemyObject);
@@ -593,7 +608,7 @@ void CScene::AnimateObjects(float fTimeElapsed)
 		if (IsEnemyBlockedAtWorld(xmf3ResolvedPosition.x, xmf3ResolvedPosition.z, map)) xmf3ResolvedPosition.z = xmf3EnemyPosition.z;
 
 		xmf3ResolvedPosition.y = GetMazeFloorHeight(xmf3ResolvedPosition.x, xmf3ResolvedPosition.z, map);
-		enemy.m_pObject->SetPosition(xmf3ResolvedPosition);
+		SetObjectLookDirectionXZ(enemy.m_pObject, xmf3ResolvedPosition, xmf3Direction);
 	}
 
 	if (m_pLights)
