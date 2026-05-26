@@ -248,28 +248,12 @@ static void CopyMaterialCounts(int *pnDestination, int nDestinationOffset, const
 	for (int i = 0; i < nSourceCount; i++) pnDestination[nDestinationOffset + i] = pnSource[i];
 }
 
-static void ApplyWeaponPose(CGameObject *pCharacter)
-{
-	if (!pCharacter) return;
-
-	CGameObject *pLeftArm = pCharacter->FindFrame("mixamorig:LeftArm");
-	if (pLeftArm) pLeftArm->Rotate(0.0f, 90.0f, 0.0f);
-
-	CGameObject *pRightArm = pCharacter->FindFrame("mixamorig:RightArm");
-	if (pRightArm) pRightArm->Rotate(0.0f, -90.0f, 0.0f);
-
-	CGameObject *pRightHand = pCharacter->FindFrame("mixamorig:RightHand");
-	if (pRightHand) pRightHand->Rotate(0.0f, 0.0f, -90.0f);
-}
-
 static CGameObject *CreateArmedCharacterObject(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *pd3dCommandList, ID3D12RootSignature *pd3dGraphicsRootSignature, char *pstrCharacterFileName, const XMFLOAT3& xmf3Position, const XMFLOAT3& xmf3Rotation)
 {
 	int nCharacterMeshesInHierarchy = 0;
 	int pnMaterialsInHierarchy[64] = { 0 };
 	CGameObject *pCharacterObject = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, pstrCharacterFileName, &nCharacterMeshesInHierarchy, pnMaterialsInHierarchy);
 	if (!pCharacterObject) return(NULL);
-
-	ApplyWeaponPose(pCharacterObject);
 
 	int nGunMeshesInHierarchy = 0;
 	int pnGunMaterialsInHierarchy[64] = { 0 };
@@ -425,7 +409,7 @@ void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *p
 	{
 		XMFLOAT3 xmf3EnemyCellPosition = GetMazeCellPosition(pnEnemyCells[i][0], pnEnemyCells[i][1], map.m_nWidth, map.m_nHeight, 0.0f);
 		xmf3EnemyCellPosition.y = GetMazeFloorHeight(xmf3EnemyCellPosition.x, xmf3EnemyCellPosition.z, map);
-		CGameObject *pEnemyObject = CreateArmedCharacterObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Ch35_nonPBR.bin", xmf3EnemyCellPosition, XMFLOAT3(0.0f, 0.0f, 0.0f));
+		CGameObject *pEnemyObject = CreateArmedCharacterObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/SoldierFinalAnimations.bin", xmf3EnemyCellPosition, XMFLOAT3(0.0f, 0.0f, 0.0f));
 		if (pEnemyObject)
 		{
 			ppObjects.push_back(pEnemyObject);

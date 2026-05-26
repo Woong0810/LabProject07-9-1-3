@@ -230,20 +230,6 @@ static void CopyMaterialCounts(int *pnDestination, int nDestinationOffset, const
 	for (int i = 0; i < nSourceCount; i++) pnDestination[nDestinationOffset + i] = pnSource[i];
 }
 
-static void ApplyWeaponPose(CGameObject *pCharacter)
-{
-	if (!pCharacter) return;
-
-	CGameObject *pLeftArm = pCharacter->FindFrame("mixamorig:LeftArm");
-	if (pLeftArm) pLeftArm->Rotate(0.0f, 90.0f, 0.0f);
-
-	CGameObject *pRightArm = pCharacter->FindFrame("mixamorig:RightArm");
-	if (pRightArm) pRightArm->Rotate(0.0f, -90.0f, 0.0f);
-
-	CGameObject *pRightHand = pCharacter->FindFrame("mixamorig:RightHand");
-	if (pRightHand) pRightHand->Rotate(0.0f, 0.0f, -90.0f);
-}
-
 static CGameObject *AttachGunToRightHand(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *pd3dCommandList, ID3D12RootSignature *pd3dGraphicsRootSignature, CGameObject *pCharacter, int nMeshOffset, int *pnGunMeshesInHierarchy, int *pnGunMaterialsInHierarchy)
 {
 	*pnGunMeshesInHierarchy = 0;
@@ -267,10 +253,9 @@ CAirplanePlayer::CAirplanePlayer(ID3D12Device *pd3dDevice, ID3D12GraphicsCommand
 
 	int nMeshesInHierarchy = 0;
 	int pnMaterialsInHierarchy[64] = { 0 };
-	CGameObject *pModelObject = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/Ch15_nonPBR.bin", &nMeshesInHierarchy, pnMaterialsInHierarchy);
+	CGameObject *pModelObject = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/SoldierFinalAnimations.bin", &nMeshesInHierarchy, pnMaterialsInHierarchy);
 
 	pModelObject->SetPosition(0.0f, -8.0f, 0.0f);
-	ApplyWeaponPose(pModelObject);
 
 	int nGunMeshesInHierarchy = 0;
 	int pnGunMaterialsInHierarchy[64] = { 0 };
