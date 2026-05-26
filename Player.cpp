@@ -217,36 +217,6 @@ void CPlayer::Render(ID3D12GraphicsCommandList *pd3dCommandList, CCamera *pCamer
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // CAirplanePlayer
 
-static void OffsetMeshHierarchyIndices(CGameObject *pObject, int nOffset)
-{
-	if (!pObject) return;
-	if (pObject->m_pMesh) pObject->m_nMeshInHierarchy += nOffset;
-	if (pObject->m_pSibling) OffsetMeshHierarchyIndices(pObject->m_pSibling, nOffset);
-	if (pObject->m_pChild) OffsetMeshHierarchyIndices(pObject->m_pChild, nOffset);
-}
-
-static void CopyMaterialCounts(int *pnDestination, int nDestinationOffset, const int *pnSource, int nSourceCount)
-{
-	for (int i = 0; i < nSourceCount; i++) pnDestination[nDestinationOffset + i] = pnSource[i];
-}
-
-static CGameObject *AttachGunToRightHand(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *pd3dCommandList, ID3D12RootSignature *pd3dGraphicsRootSignature, CGameObject *pCharacter, int nMeshOffset, int *pnGunMeshesInHierarchy, int *pnGunMaterialsInHierarchy)
-{
-	*pnGunMeshesInHierarchy = 0;
-	CGameObject *pGunObject = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/H&K_USP_45_Game.bin", pnGunMeshesInHierarchy, pnGunMaterialsInHierarchy);
-	if (!pGunObject) return(NULL);
-
-	OffsetMeshHierarchyIndices(pGunObject, nMeshOffset);
-	pGunObject->SetPosition(0.0f, 0.0f, 0.0f);
-	pGunObject->Rotate(0.0f, 90.0f, 0.0f);
-
-	CGameObject *pRightHand = pCharacter->FindFrame("mixamorig:RightHand");
-	if (pRightHand) pRightHand->SetChild(pGunObject, true);
-	else pCharacter->SetChild(pGunObject, true);
-
-	return(pGunObject);
-}
-
 CAirplanePlayer::CAirplanePlayer(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *pd3dCommandList, ID3D12RootSignature *pd3dGraphicsRootSignature)
 {
 	m_pCamera = ChangeCamera(/*SPACESHIP_CAMERA*/THIRD_PERSON_CAMERA, 0.0f);
@@ -256,12 +226,6 @@ CAirplanePlayer::CAirplanePlayer(ID3D12Device *pd3dDevice, ID3D12GraphicsCommand
 	CGameObject *pModelObject = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/SoldierFinalAnimations.bin", &nMeshesInHierarchy, pnMaterialsInHierarchy);
 
 	pModelObject->SetPosition(0.0f, -8.0f, 0.0f);
-
-	int nGunMeshesInHierarchy = 0;
-	int pnGunMaterialsInHierarchy[64] = { 0 };
-	AttachGunToRightHand(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, pModelObject, nMeshesInHierarchy, &nGunMeshesInHierarchy, pnGunMaterialsInHierarchy);
-	CopyMaterialCounts(pnMaterialsInHierarchy, nMeshesInHierarchy, pnGunMaterialsInHierarchy, nGunMeshesInHierarchy);
-	nMeshesInHierarchy += nGunMeshesInHierarchy;
 
 	SetChild(pModelObject, true);
 

@@ -235,42 +235,12 @@ static CGameObject *CreateLoadedModelObject(ID3D12Device *pd3dDevice, ID3D12Grap
 	return(pObject);
 }
 
-static void OffsetMeshHierarchyIndices(CGameObject *pObject, int nOffset)
-{
-	if (!pObject) return;
-	if (pObject->m_pMesh) pObject->m_nMeshInHierarchy += nOffset;
-	if (pObject->m_pSibling) OffsetMeshHierarchyIndices(pObject->m_pSibling, nOffset);
-	if (pObject->m_pChild) OffsetMeshHierarchyIndices(pObject->m_pChild, nOffset);
-}
-
-static void CopyMaterialCounts(int *pnDestination, int nDestinationOffset, const int *pnSource, int nSourceCount)
-{
-	for (int i = 0; i < nSourceCount; i++) pnDestination[nDestinationOffset + i] = pnSource[i];
-}
-
 static CGameObject *CreateArmedCharacterObject(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *pd3dCommandList, ID3D12RootSignature *pd3dGraphicsRootSignature, char *pstrCharacterFileName, const XMFLOAT3& xmf3Position, const XMFLOAT3& xmf3Rotation)
 {
 	int nCharacterMeshesInHierarchy = 0;
 	int pnMaterialsInHierarchy[64] = { 0 };
 	CGameObject *pCharacterObject = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, pstrCharacterFileName, &nCharacterMeshesInHierarchy, pnMaterialsInHierarchy);
 	if (!pCharacterObject) return(NULL);
-
-	int nGunMeshesInHierarchy = 0;
-	int pnGunMaterialsInHierarchy[64] = { 0 };
-	CGameObject *pGunObject = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/H&K_USP_45_Game.bin", &nGunMeshesInHierarchy, pnGunMaterialsInHierarchy);
-	if (pGunObject)
-	{
-		OffsetMeshHierarchyIndices(pGunObject, nCharacterMeshesInHierarchy);
-		pGunObject->SetPosition(0.0f, 0.0f, 0.0f);
-		pGunObject->Rotate(0.0f, 90.0f, 0.0f);
-
-		CGameObject *pRightHand = pCharacterObject->FindFrame("mixamorig:RightHand");
-		if (pRightHand) pRightHand->SetChild(pGunObject, true);
-		else pCharacterObject->SetChild(pGunObject, true);
-
-		CopyMaterialCounts(pnMaterialsInHierarchy, nCharacterMeshesInHierarchy, pnGunMaterialsInHierarchy, nGunMeshesInHierarchy);
-		nCharacterMeshesInHierarchy += nGunMeshesInHierarchy;
-	}
 
 	pCharacterObject->Rotate(xmf3Rotation.x, xmf3Rotation.y, xmf3Rotation.z);
 	pCharacterObject->SetPosition(xmf3Position);
