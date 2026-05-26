@@ -141,6 +141,66 @@ static bool IsSecondFloorDoor(const MAZE_MAP_DESC& map, int x, int z)
 	if ((z < (map.m_nHeight - 1)) && IsSecondFloorTile(map.m_pTiles[(z + 1) * map.m_nWidth + x])) return(true);
 	return(false);
 }
+static int WorldToMazeCellX(float x, const MAZE_MAP_DESC& map)
+{
+	return((int)floorf((x / MAZE_CELL_SIZE) + ((map.m_nWidth - 1) * 0.5f) + 0.5f));
+}
+
+static int WorldToMazeCellZ(float z, const MAZE_MAP_DESC& map)
+{
+	return((int)floorf((z / MAZE_CELL_SIZE) + ((map.m_nHeight - 1) * 0.5f) + 0.5f));
+}
+
+static bool IsInsideMazeCell(int x, int z, const MAZE_MAP_DESC& map)
+{
+	return((x >= 0) && (x < map.m_nWidth) && (z >= 0) && (z < map.m_nHeight));
+}
+
+static char GetMazeTileAtWorld(float x, float z, const MAZE_MAP_DESC& map)
+{
+	int nCellX = WorldToMazeCellX(x, map);
+	int nCellZ = WorldToMazeCellZ(z, map);
+	if (!IsInsideMazeCell(nCellX, nCellZ, map)) return('#');
+	return(map.m_pTiles[nCellZ * map.m_nWidth + nCellX]);
+}
+
+static bool IsBlockingTile(char tile)
+{
+	return((tile == '#') || (tile == 'D') || (tile == 'H'));
+}
+
+static bool IsBlockedAtWorld(float x, float z, const MAZE_MAP_DESC& map)
+{
+	return(IsBlockingTile(GetMazeTileAtWorld(x, z, map)));
+}
+
+static bool IsPlayerBlockedAtWorld(float x, float z, const MAZE_MAP_DESC& map)
+{
+	const float fPlayerRadius = 6.0f;
+	return(IsBlockedAtWorld(x - fPlayerRadius, z - fPlayerRadius, map) ||
+		IsBlockedAtWorld(x + fPlayerRadius, z - fPlayerRadius, map) ||
+		IsBlockedAtWorld(x - fPlayerRadius, z + fPlayerRadius, map) ||
+		IsBlockedAtWorld(x + fPlayerRadius, z + fPlayerRadius, map));
+}
+
+static float GetMazeFloorHeight(float x, float z, const MAZE_MAP_DESC& map)
+{
+	int nCellX = WorldToMazeCellX(x, map);
+	int nCellZ = WorldToMazeCellZ(z, map);
+	if (!IsInsideMazeCell(nCellX, nCellZ, map)) return(0.0f);
+
+	char tile = map.m_pTiles[nCellZ * map.m_nWidth + nCellX];
+	if (IsSecondFloorTile(tile) || IsSecondFloorDoor(map, nCellX, nCellZ)) return(30.0f);
+	if (tile == '^')
+	{
+		XMFLOAT3 xmf3CellCenter = GetMazeCellPosition(nCellX, nCellZ, map.m_nWidth, map.m_nHeight, 0.0f);
+		float fLocalZ = (z - (xmf3CellCenter.z - (MAZE_CELL_SIZE * 0.5f))) / MAZE_CELL_SIZE;
+		if (fLocalZ < 0.0f) fLocalZ = 0.0f;
+		if (fLocalZ > 1.0f) fLocalZ = 1.0f;
+		return(fLocalZ * 30.0f);
+	}
+	return(0.0f);
+}
 static CGameObject *CreateColoredBoxObject(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *pd3dCommandList, const XMFLOAT3& xmf3Position, const XMFLOAT3& xmf3Scale, const XMFLOAT4& xmf4Color)
 {
 	CGameObject *pObject = new CGameObject();
@@ -348,6 +408,35 @@ void CScene::AnimateObjects(float fTimeElapsed)
 	}
 }
 
+void CScene::ResolvePlayerCollision(CPlayer *pPlayer, const XMFLOAT3& xmf3OldPosition, bool bFreeFlyMode)
+{
+	if (!pPlayer || bFreeFlyMode) return;
+
+	const MAZE_MAP_DESC& map = g_pMazeMaps[0];
+	XMFLOAT3 xmf3Position = pPlayer->GetPosition();
+
+	if (IsPlayerBlockedAtWorld(xmf3Position.x, xmf3Position.z, map))
+	{
+		XMFLOAT3 xmf3ResolvedPosition = xmf3Position;
+
+		xmf3ResolvedPosition.x = xmf3OldPosition.x;
+		if (IsPlayerBlockedAtWorld(xmf3ResolvedPosition.x, xmf3ResolvedPosition.z, map))
+		{
+			xmf3ResolvedPosition.x = xmf3Position.x;
+			xmf3ResolvedPosition.z = xmf3OldPosition.z;
+		}
+		if (IsPlayerBlockedAtWorld(xmf3ResolvedPosition.x, xmf3ResolvedPosition.z, map))
+		{
+			xmf3ResolvedPosition.x = xmf3OldPosition.x;
+			xmf3ResolvedPosition.z = xmf3OldPosition.z;
+		}
+
+		xmf3Position = xmf3ResolvedPosition;
+	}
+
+	xmf3Position.y = GetMazeFloorHeight(xmf3Position.x, xmf3Position.z, map) + 8.0f;
+	pPlayer->SetPosition(xmf3Position);
+}
 void CScene::Render(ID3D12GraphicsCommandList *pd3dCommandList, CCamera *pCamera)
 {
 	pd3dCommandList->SetGraphicsRootSignature(m_pd3dGraphicsRootSignature);
@@ -370,6 +459,8 @@ void CScene::Render(ID3D12GraphicsCommandList *pd3dCommandList, CCamera *pCamera
 		}
 	}
 }
+
+
 
 
 
