@@ -6,9 +6,9 @@
 #include "Player.h"
 #include "Shader.h"
 
-static const float FIRST_PERSON_CAMERA_HEIGHT = 82.0f;
-static const float THIRD_PERSON_LOOK_AT_HEIGHT = 58.0f;
-static const XMFLOAT3 THIRD_PERSON_CAMERA_OFFSET = XMFLOAT3(10.0f, 78.0f, -120.0f);
+static const float FIRST_PERSON_CAMERA_HEIGHT = 36.0f;
+static const float THIRD_PERSON_LOOK_AT_HEIGHT = 30.0f;
+static const XMFLOAT3 THIRD_PERSON_CAMERA_OFFSET = XMFLOAT3(8.0f, 45.0f, -70.0f);
 
 static void BuildCameraOrientationFromPlayer(const XMFLOAT3& xmf3PlayerRight, const XMFLOAT3& xmf3PlayerUp, const XMFLOAT3& xmf3PlayerLook, float fPitch, XMFLOAT3& xmf3CameraRight, XMFLOAT3& xmf3CameraUp, XMFLOAT3& xmf3CameraLook)
 {
