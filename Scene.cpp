@@ -87,6 +87,11 @@ static const float DOOR_TRIGGER_DISTANCE = 34.0f;
 static const float DOOR_OPEN_SPEED = 2.8f;
 static const float ENEMY_STOP_DISTANCE = 10.0f;
 static const float ENEMY_RADIUS = 5.0f;
+static const float ENEMY_DETECTION_DISTANCE = 210.0f;
+static const float ENEMY_VIEW_HALF_ANGLE = 55.0f;
+static const float ENEMY_SEARCH_DURATION = 4.0f;
+static const float ENEMY_PATROL_DISTANCE = 60.0f;
+static const float ENEMY_PATROL_REACH_DISTANCE = 4.0f;
 
 static const char g_pStage1Floor0Map[] =
 	"#######################"
@@ -321,6 +326,68 @@ static bool IsEnemyBlockedAtWorld(float x, float z, float y, const MAZE_MAP_DESC
 		IsBlockedAtWorld(x + ENEMY_RADIUS, z + ENEMY_RADIUS, y, map, doors));
 }
 
+static bool HasLineOfSightToPlayer(const XMFLOAT3& xmf3EnemyPosition, const XMFLOAT3& xmf3PlayerPosition, const MAZE_MAP_DESC& map, const std::vector<DOOR_OBJECT>& doors)
+{
+	float fDistance = DistanceXZ(xmf3EnemyPosition, xmf3PlayerPosition);
+	int nSteps = (int)(fDistance / (MAZE_CELL_SIZE * 0.35f));
+	if (nSteps < 2) return(true);
+
+	for (int i = 1; i < nSteps; i++)
+	{
+		float t = (float)i / (float)nSteps;
+		float x = xmf3EnemyPosition.x + ((xmf3PlayerPosition.x - xmf3EnemyPosition.x) * t);
+		float z = xmf3EnemyPosition.z + ((xmf3PlayerPosition.z - xmf3EnemyPosition.z) * t);
+		if (IsBlockedAtWorld(x, z, xmf3EnemyPosition.y, map, doors)) return(false);
+	}
+	return(true);
+}
+
+static bool CanEnemySeePlayer(const ENEMY_OBJECT& enemy, const XMFLOAT3& xmf3EnemyPosition, const XMFLOAT3& xmf3PlayerPosition, const MAZE_MAP_DESC& map, const std::vector<DOOR_OBJECT>& doors)
+{
+	if (!enemy.m_pObject) return(false);
+	if (GetMazeFloorIndexFromWorldY(xmf3EnemyPosition.y) != GetMazeFloorIndexFromWorldY(xmf3PlayerPosition.y)) return(false);
+
+	float fDistance = DistanceXZ(xmf3EnemyPosition, xmf3PlayerPosition);
+	if (fDistance > ENEMY_DETECTION_DISTANCE) return(false);
+
+	XMFLOAT3 xmf3DirectionToPlayer = XMFLOAT3(xmf3PlayerPosition.x - xmf3EnemyPosition.x, 0.0f, xmf3PlayerPosition.z - xmf3EnemyPosition.z);
+	if (Vector3::Length(xmf3DirectionToPlayer) < 0.001f) return(true);
+	xmf3DirectionToPlayer = Vector3::Normalize(xmf3DirectionToPlayer);
+
+	XMFLOAT3 xmf3EnemyLook = enemy.m_pObject->GetLook();
+	xmf3EnemyLook = Vector3::Normalize(XMFLOAT3(xmf3EnemyLook.x, 0.0f, xmf3EnemyLook.z));
+	float fDot = Vector3::DotProduct(xmf3EnemyLook, xmf3DirectionToPlayer);
+	float fMinDot = cosf(XMConvertToRadians(ENEMY_VIEW_HALF_ANGLE));
+	if (fDot < fMinDot) return(false);
+
+	return(HasLineOfSightToPlayer(xmf3EnemyPosition, xmf3PlayerPosition, map, doors));
+}
+
+static bool MoveEnemyToward(ENEMY_OBJECT& enemy, const XMFLOAT3& xmf3TargetPosition, float fTimeElapsed, const MAZE_MAP_DESC& map, const std::vector<DOOR_OBJECT>& doors, float fStopDistance)
+{
+	if (!enemy.m_pObject) return(false);
+
+	XMFLOAT3 xmf3EnemyPosition = enemy.m_pObject->GetPosition();
+	XMFLOAT3 xmf3Direction = XMFLOAT3(xmf3TargetPosition.x - xmf3EnemyPosition.x, 0.0f, xmf3TargetPosition.z - xmf3EnemyPosition.z);
+	float fDistance = Vector3::Length(xmf3Direction);
+	if (fDistance <= fStopDistance) return(true);
+
+	xmf3Direction = Vector3::Normalize(xmf3Direction);
+	float fMoveDistance = enemy.m_fMoveSpeed * fTimeElapsed;
+	if (fMoveDistance > (fDistance - fStopDistance)) fMoveDistance = fDistance - fStopDistance;
+
+	XMFLOAT3 xmf3ResolvedPosition = xmf3EnemyPosition;
+	xmf3ResolvedPosition.x += xmf3Direction.x * fMoveDistance;
+	if (IsEnemyBlockedAtWorld(xmf3ResolvedPosition.x, xmf3ResolvedPosition.z, xmf3EnemyPosition.y, map, doors)) xmf3ResolvedPosition.x = xmf3EnemyPosition.x;
+
+	xmf3ResolvedPosition.z += xmf3Direction.z * fMoveDistance;
+	if (IsEnemyBlockedAtWorld(xmf3ResolvedPosition.x, xmf3ResolvedPosition.z, xmf3EnemyPosition.y, map, doors)) xmf3ResolvedPosition.z = xmf3EnemyPosition.z;
+
+	xmf3ResolvedPosition.y = GetMazeFloorHeight(xmf3ResolvedPosition.x, xmf3ResolvedPosition.z, xmf3EnemyPosition.y, map);
+	SetObjectLookDirectionXZ(enemy.m_pObject, xmf3ResolvedPosition, xmf3Direction);
+	return(DistanceXZ(xmf3ResolvedPosition, xmf3TargetPosition) <= fStopDistance);
+}
+
 bool CScene::IsPlayerBlockedAtWorld(float x, float z, float y)
 {
 	const MAZE_MAP_DESC& map = g_pMazeMaps[0];
@@ -417,7 +484,11 @@ void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *p
 			ppObjects.push_back(pEnemyObject);
 			ENEMY_OBJECT enemy;
 			enemy.m_pObject = pEnemyObject;
+			enemy.m_nFloor = pnEnemyCells[i][2];
 			enemy.m_fMoveSpeed = 18.0f;
+			enemy.m_xmf3SpawnPosition = xmf3EnemyCellPosition;
+			enemy.m_xmf3PatrolTarget = XMFLOAT3(xmf3EnemyCellPosition.x + ((i % 2 == 0) ? ENEMY_PATROL_DISTANCE : -ENEMY_PATROL_DISTANCE), xmf3EnemyCellPosition.y, xmf3EnemyCellPosition.z);
+			enemy.m_xmf3LastKnownPlayerPosition = xmf3EnemyCellPosition;
 			m_vEnemies.push_back(enemy);
 		}
 	}
@@ -579,23 +650,39 @@ void CScene::AnimateObjects(float fTimeElapsed)
 		if (!enemy.m_pObject || !m_pPlayer) continue;
 
 		XMFLOAT3 xmf3EnemyPosition = enemy.m_pObject->GetPosition();
-		XMFLOAT3 xmf3Direction = XMFLOAT3(xmf3PlayerPosition.x - xmf3EnemyPosition.x, 0.0f, xmf3PlayerPosition.z - xmf3EnemyPosition.z);
-		float fDistance = Vector3::Length(xmf3Direction);
-		if (fDistance <= ENEMY_STOP_DISTANCE) continue;
+		bool bCanSeePlayer = CanEnemySeePlayer(enemy, xmf3EnemyPosition, xmf3PlayerPosition, map, m_vDoors);
+		if (bCanSeePlayer)
+		{
+			enemy.m_nState = ENEMY_AI_CHASE;
+			enemy.m_fSearchTime = ENEMY_SEARCH_DURATION;
+			enemy.m_xmf3LastKnownPlayerPosition = xmf3PlayerPosition;
+		}
+		else if (enemy.m_nState == ENEMY_AI_CHASE)
+		{
+			enemy.m_nState = ENEMY_AI_SEARCH;
+			enemy.m_fSearchTime = ENEMY_SEARCH_DURATION;
+		}
 
-		xmf3Direction = Vector3::Normalize(xmf3Direction);
-		float fMoveDistance = enemy.m_fMoveSpeed * fTimeElapsed;
-		if (fMoveDistance > (fDistance - ENEMY_STOP_DISTANCE)) fMoveDistance = fDistance - ENEMY_STOP_DISTANCE;
-
-		XMFLOAT3 xmf3ResolvedPosition = xmf3EnemyPosition;
-		xmf3ResolvedPosition.x += xmf3Direction.x * fMoveDistance;
-		if (IsEnemyBlockedAtWorld(xmf3ResolvedPosition.x, xmf3ResolvedPosition.z, xmf3EnemyPosition.y, map, m_vDoors)) xmf3ResolvedPosition.x = xmf3EnemyPosition.x;
-
-		xmf3ResolvedPosition.z += xmf3Direction.z * fMoveDistance;
-		if (IsEnemyBlockedAtWorld(xmf3ResolvedPosition.x, xmf3ResolvedPosition.z, xmf3EnemyPosition.y, map, m_vDoors)) xmf3ResolvedPosition.z = xmf3EnemyPosition.z;
-
-		xmf3ResolvedPosition.y = GetMazeFloorHeight(xmf3ResolvedPosition.x, xmf3ResolvedPosition.z, xmf3EnemyPosition.y, map);
-		SetObjectLookDirectionXZ(enemy.m_pObject, xmf3ResolvedPosition, xmf3Direction);
+		if (enemy.m_nState == ENEMY_AI_CHASE)
+		{
+			MoveEnemyToward(enemy, xmf3PlayerPosition, fTimeElapsed, map, m_vDoors, ENEMY_STOP_DISTANCE);
+		}
+		else if (enemy.m_nState == ENEMY_AI_SEARCH)
+		{
+			enemy.m_fSearchTime -= fTimeElapsed;
+			bool bReachedLastKnownPosition = MoveEnemyToward(enemy, enemy.m_xmf3LastKnownPlayerPosition, fTimeElapsed, map, m_vDoors, ENEMY_PATROL_REACH_DISTANCE);
+			if (bReachedLastKnownPosition || (enemy.m_fSearchTime <= 0.0f))
+			{
+				enemy.m_nState = ENEMY_AI_PATROL;
+				enemy.m_bMovingToPatrolTarget = true;
+			}
+		}
+		else
+		{
+			XMFLOAT3 xmf3PatrolDestination = enemy.m_bMovingToPatrolTarget ? enemy.m_xmf3PatrolTarget : enemy.m_xmf3SpawnPosition;
+			bool bReachedPatrolPoint = MoveEnemyToward(enemy, xmf3PatrolDestination, fTimeElapsed, map, m_vDoors, ENEMY_PATROL_REACH_DISTANCE);
+			if (bReachedPatrolPoint) enemy.m_bMovingToPatrolTarget = !enemy.m_bMovingToPatrolTarget;
+		}
 	}
 
 	if (m_pLights)

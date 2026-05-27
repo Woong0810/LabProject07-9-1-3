@@ -51,10 +51,24 @@ struct DOOR_OBJECT
 	XMFLOAT3				m_xmf3ClosedPosition = XMFLOAT3(0.0f, 0.0f, 0.0f);
 };
 
+enum ENEMY_AI_STATE
+{
+	ENEMY_AI_PATROL = 0,
+	ENEMY_AI_CHASE,
+	ENEMY_AI_SEARCH
+};
+
 struct ENEMY_OBJECT
 {
 	CGameObject				*m_pObject = NULL;
 	float					m_fMoveSpeed = 18.0f;
+	ENEMY_AI_STATE			m_nState = ENEMY_AI_PATROL;
+	int						m_nFloor = 0;
+	bool					m_bMovingToPatrolTarget = true;
+	float					m_fSearchTime = 0.0f;
+	XMFLOAT3				m_xmf3SpawnPosition = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	XMFLOAT3				m_xmf3PatrolTarget = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	XMFLOAT3				m_xmf3LastKnownPlayerPosition = XMFLOAT3(0.0f, 0.0f, 0.0f);
 };
 
 class CScene
