@@ -486,6 +486,38 @@ void CGameFramework::AnimateObjects()
 	m_pPlayer->Animate(fTimeElapsed, NULL);
 }
 
+void CGameFramework::RenderCrosshair()
+{
+	if (!m_pCamera || (m_pCamera->GetMode() != FIRST_PERSON_CAMERA)) return;
+
+	RECT rcClient;
+	::GetClientRect(m_hWnd, &rcClient);
+
+	int xCenter = (rcClient.right - rcClient.left) / 2;
+	int yCenter = (rcClient.bottom - rcClient.top) / 2;
+	const int nGap = 5;
+	const int nLength = 14;
+
+	HDC hdc = ::GetDC(m_hWnd);
+	if (!hdc) return;
+
+	HPEN hPen = ::CreatePen(PS_SOLID, 2, RGB(255, 255, 255));
+	HPEN hOldPen = (HPEN)::SelectObject(hdc, hPen);
+
+	::MoveToEx(hdc, xCenter - nLength, yCenter, NULL);
+	::LineTo(hdc, xCenter - nGap, yCenter);
+	::MoveToEx(hdc, xCenter + nGap, yCenter, NULL);
+	::LineTo(hdc, xCenter + nLength, yCenter);
+	::MoveToEx(hdc, xCenter, yCenter - nLength, NULL);
+	::LineTo(hdc, xCenter, yCenter - nGap);
+	::MoveToEx(hdc, xCenter, yCenter + nGap, NULL);
+	::LineTo(hdc, xCenter, yCenter + nLength);
+
+	::SelectObject(hdc, hOldPen);
+	::DeleteObject(hPen);
+	::ReleaseDC(m_hWnd, hdc);
+}
+
 void CGameFramework::WaitForGpuComplete()
 {
 	const UINT64 nFenceValue = ++m_nFenceValues[m_nSwapChainBufferIndex];
@@ -579,6 +611,8 @@ void CGameFramework::FrameAdvance()
 	m_pdxgiSwapChain->Present(0, 0);
 #endif
 #endif
+
+	RenderCrosshair();
 
 	MoveToNextFrame();
 
