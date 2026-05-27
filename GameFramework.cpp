@@ -486,36 +486,25 @@ void CGameFramework::AnimateObjects()
 	m_pPlayer->Animate(fTimeElapsed, NULL);
 }
 
-void CGameFramework::RenderCrosshair()
+void CGameFramework::RenderCrosshair(D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle)
 {
 	if (!m_pCamera || (m_pCamera->GetMode() != FIRST_PERSON_CAMERA)) return;
 
-	RECT rcClient;
-	::GetClientRect(m_hWnd, &rcClient);
-
-	int xCenter = (rcClient.right - rcClient.left) / 2;
-	int yCenter = (rcClient.bottom - rcClient.top) / 2;
+	int xCenter = m_nWndClientWidth / 2;
+	int yCenter = m_nWndClientHeight / 2;
 	const int nGap = 5;
 	const int nLength = 14;
+	const int nThickness = 2;
 
-	HDC hdc = ::GetDC(m_hWnd);
-	if (!hdc) return;
-
-	HPEN hPen = ::CreatePen(PS_SOLID, 2, RGB(255, 255, 255));
-	HPEN hOldPen = (HPEN)::SelectObject(hdc, hPen);
-
-	::MoveToEx(hdc, xCenter - nLength, yCenter, NULL);
-	::LineTo(hdc, xCenter - nGap, yCenter);
-	::MoveToEx(hdc, xCenter + nGap, yCenter, NULL);
-	::LineTo(hdc, xCenter + nLength, yCenter);
-	::MoveToEx(hdc, xCenter, yCenter - nLength, NULL);
-	::LineTo(hdc, xCenter, yCenter - nGap);
-	::MoveToEx(hdc, xCenter, yCenter + nGap, NULL);
-	::LineTo(hdc, xCenter, yCenter + nLength);
-
-	::SelectObject(hdc, hOldPen);
-	::DeleteObject(hPen);
-	::ReleaseDC(m_hWnd, hdc);
+	D3D12_RECT pd3dCrosshairRects[4] =
+	{
+		{ xCenter - nLength, yCenter - (nThickness / 2), xCenter - nGap, yCenter + nThickness },
+		{ xCenter + nGap, yCenter - (nThickness / 2), xCenter + nLength, yCenter + nThickness },
+		{ xCenter - (nThickness / 2), yCenter - nLength, xCenter + nThickness, yCenter - nGap },
+		{ xCenter - (nThickness / 2), yCenter + nGap, xCenter + nThickness, yCenter + nLength }
+	};
+	float pfCrosshairColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	m_pd3dCommandList->ClearRenderTargetView(d3dRtvCPUDescriptorHandle, pfCrosshairColor, _countof(pd3dCrosshairRects), pd3dCrosshairRects);
 }
 
 void CGameFramework::WaitForGpuComplete()
@@ -585,6 +574,8 @@ void CGameFramework::FrameAdvance()
 #endif
 	if (m_pPlayer) m_pPlayer->Render(m_pd3dCommandList, m_pCamera);
 
+	RenderCrosshair(d3dRtvCPUDescriptorHandle);
+
 	d3dResourceBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	d3dResourceBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
 	d3dResourceBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
@@ -611,8 +602,6 @@ void CGameFramework::FrameAdvance()
 	m_pdxgiSwapChain->Present(0, 0);
 #endif
 #endif
-
-	RenderCrosshair();
 
 	MoveToNextFrame();
 

@@ -33,7 +33,7 @@ public:
     void ProcessInput();
     void AnimateObjects();
     void FrameAdvance();
-	void RenderCrosshair();
+	void RenderCrosshair(D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle);
 
 	void WaitForGpuComplete();
 	void MoveToNextFrame();
