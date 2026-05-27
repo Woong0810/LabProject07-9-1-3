@@ -5,7 +5,7 @@
 #include "stdafx.h"
 #include "GameFramework.h"
 
-static const float PLAYER_WALK_SPEED = 18.0f;
+static const float PLAYER_WALK_SPEED = 45.0f;
 
 CGameFramework::CGameFramework()
 {
