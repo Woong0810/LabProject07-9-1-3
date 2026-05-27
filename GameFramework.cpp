@@ -5,6 +5,8 @@
 #include "stdafx.h"
 #include "GameFramework.h"
 
+static const float PLAYER_WALK_SPEED = 18.0f;
+
 CGameFramework::CGameFramework()
 {
 	m_pdxgiFactory = NULL;
@@ -433,6 +435,7 @@ void CGameFramework::ReleaseObjects()
 void CGameFramework::ProcessInput()
 {
 	XMFLOAT3 xmf3OldPlayerPosition = m_pPlayer->GetPosition();
+	float fTimeElapsed = m_GameTimer.GetTimeElapsed();
 
 	static UCHAR pKeysBuffer[256];
 	bool bProcessedByScene = false;
@@ -467,10 +470,10 @@ void CGameFramework::ProcessInput()
 				else
 					m_pPlayer->Rotate(cyDelta, cxDelta, 0.0f);
 			}
-			if (dwDirection) m_pPlayer->Move(dwDirection, 0.3f, false);
+			if (dwDirection) m_pPlayer->Move(dwDirection, PLAYER_WALK_SPEED * fTimeElapsed, false);
 		}
 	}
-	m_pPlayer->Update(m_GameTimer.GetTimeElapsed());
+	m_pPlayer->Update(fTimeElapsed);
 	if (m_pScene) m_pScene->ResolvePlayerCollision(m_pPlayer, xmf3OldPlayerPosition, m_bFreeFlyMode);
 }
 
