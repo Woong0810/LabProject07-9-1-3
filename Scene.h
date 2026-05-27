@@ -44,6 +44,7 @@ struct DOOR_OBJECT
 	CGameObject				*m_pObject = NULL;
 	int						m_nCellX = 0;
 	int						m_nCellZ = 0;
+	int						m_nFloor = 0;
 	bool					m_bHorizontal = false;
 	float					m_fFloorHeight = 0.0f;
 	float					m_fOpenAmount = 0.0f;
@@ -82,7 +83,7 @@ public:
 
 	void ReleaseUploadBuffers();
 	void ResolvePlayerCollision(CPlayer *pPlayer, const XMFLOAT3& xmf3OldPosition, bool bFreeFlyMode);
-	bool IsPlayerBlockedAtWorld(float x, float z);
+	bool IsPlayerBlockedAtWorld(float x, float z, float y);
 
 	CPlayer						*m_pPlayer = NULL;
 
