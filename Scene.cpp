@@ -133,7 +133,7 @@ static const char g_pStage1Floor1Map[] =
 
 static const MAZE_MAP_DESC g_pMazeMaps[] =
 {
-	{ { g_pStage1Floor0Map, g_pStage1Floor1Map }, MAZE_WIDTH, MAZE_HEIGHT, XMFLOAT4(0.42f, 0.42f, 0.40f, 1.0f), XMFLOAT4(0.54f, 0.54f, 0.50f, 1.0f), XMFLOAT4(0.58f, 0.58f, 0.56f, 1.0f), XMFLOAT4(0.82f, 0.68f, 0.28f, 1.0f), XMFLOAT4(0.00f, 0.88f, 0.82f, 1.0f) }
+	{ { g_pStage1Floor0Map, g_pStage1Floor1Map }, MAZE_WIDTH, MAZE_HEIGHT, XMFLOAT4(0.78f, 0.78f, 0.76f, 1.0f), XMFLOAT4(0.78f, 0.78f, 0.76f, 1.0f), XMFLOAT4(0.05f, 0.18f, 0.82f, 1.0f), XMFLOAT4(0.95f, 0.78f, 0.08f, 1.0f), XMFLOAT4(0.00f, 0.88f, 0.82f, 1.0f) }
 };
 
 static XMFLOAT3 GetMazeCellPosition(int x, int z, int width, int height, float y)
@@ -283,6 +283,26 @@ static CGameObject *CreateLoadedModelObject(ID3D12Device *pd3dDevice, ID3D12Grap
 	return(pObject);
 }
 
+static void SetObjectMaterialColorRecursive(CGameObject *pObject, const XMFLOAT4& xmf4Color)
+{
+	if (!pObject) return;
+
+	for (int i = 0; i < pObject->m_nMaterials; i++)
+	{
+		if (pObject->m_ppMaterials && pObject->m_ppMaterials[i] && pObject->m_ppMaterials[i]->m_pMaterialColors)
+		{
+			CMaterialColors *pMaterialColors = pObject->m_ppMaterials[i]->m_pMaterialColors;
+			pMaterialColors->m_xmf4Ambient = XMFLOAT4(xmf4Color.x * 0.35f, xmf4Color.y * 0.35f, xmf4Color.z * 0.35f, 1.0f);
+			pMaterialColors->m_xmf4Diffuse = xmf4Color;
+			pMaterialColors->m_xmf4Specular = XMFLOAT4(0.14f, 0.14f, 0.14f, 16.0f);
+			pMaterialColors->m_xmf4Emissive = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+		}
+	}
+
+	SetObjectMaterialColorRecursive(pObject->m_pChild, xmf4Color);
+	SetObjectMaterialColorRecursive(pObject->m_pSibling, xmf4Color);
+}
+
 static CGameObject *CreateArmedCharacterObject(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *pd3dCommandList, ID3D12RootSignature *pd3dGraphicsRootSignature, char *pstrCharacterFileName, const XMFLOAT3& xmf3Position, const XMFLOAT3& xmf3Rotation)
 {
 	int nCharacterMeshesInHierarchy = 0;
@@ -290,6 +310,7 @@ static CGameObject *CreateArmedCharacterObject(ID3D12Device *pd3dDevice, ID3D12G
 	CGameObject *pCharacterObject = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, pstrCharacterFileName, &nCharacterMeshesInHierarchy, pnMaterialsInHierarchy);
 	if (!pCharacterObject) return(NULL);
 
+	SetObjectMaterialColorRecursive(pCharacterObject, XMFLOAT4(0.86f, 0.05f, 0.04f, 1.0f));
 	pCharacterObject->Rotate(xmf3Rotation.x, xmf3Rotation.y, xmf3Rotation.z);
 	pCharacterObject->SetPosition(xmf3Position);
 	pCharacterObject->CreateShaderVariables(pd3dDevice, pd3dCommandList, nCharacterMeshesInHierarchy, pnMaterialsInHierarchy);

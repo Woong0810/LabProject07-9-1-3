@@ -10,6 +10,26 @@ static const float FIRST_PERSON_CAMERA_HEIGHT = 20.0f;
 static const float THIRD_PERSON_LOOK_AT_HEIGHT = 30.0f;
 static const XMFLOAT3 THIRD_PERSON_CAMERA_OFFSET = XMFLOAT3(8.0f, 37.0f, -40.0f);
 
+static void SetObjectMaterialColorRecursive(CGameObject *pObject, const XMFLOAT4& xmf4Color)
+{
+	if (!pObject) return;
+
+	for (int i = 0; i < pObject->m_nMaterials; i++)
+	{
+		if (pObject->m_ppMaterials && pObject->m_ppMaterials[i] && pObject->m_ppMaterials[i]->m_pMaterialColors)
+		{
+			CMaterialColors *pMaterialColors = pObject->m_ppMaterials[i]->m_pMaterialColors;
+			pMaterialColors->m_xmf4Ambient = XMFLOAT4(xmf4Color.x * 0.35f, xmf4Color.y * 0.35f, xmf4Color.z * 0.35f, 1.0f);
+			pMaterialColors->m_xmf4Diffuse = xmf4Color;
+			pMaterialColors->m_xmf4Specular = XMFLOAT4(0.14f, 0.14f, 0.14f, 16.0f);
+			pMaterialColors->m_xmf4Emissive = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+		}
+	}
+
+	SetObjectMaterialColorRecursive(pObject->m_pChild, xmf4Color);
+	SetObjectMaterialColorRecursive(pObject->m_pSibling, xmf4Color);
+}
+
 static void BuildCameraOrientationFromPlayer(const XMFLOAT3& xmf3PlayerRight, const XMFLOAT3& xmf3PlayerUp, const XMFLOAT3& xmf3PlayerLook, float fPitch, XMFLOAT3& xmf3CameraRight, XMFLOAT3& xmf3CameraUp, XMFLOAT3& xmf3CameraLook)
 {
 	xmf3CameraRight = xmf3PlayerRight;
@@ -256,6 +276,7 @@ CAirplanePlayer::CAirplanePlayer(ID3D12Device *pd3dDevice, ID3D12GraphicsCommand
 	int pnMaterialsInHierarchy[64] = { 0 };
 	CGameObject *pModelObject = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/Soldier_Aiming_Baked.bin", &nMeshesInHierarchy, pnMaterialsInHierarchy);
 
+	SetObjectMaterialColorRecursive(pModelObject, XMFLOAT4(0.05f, 0.78f, 0.18f, 1.0f));
 	pModelObject->SetPosition(0.0f, -8.0f, 0.0f);
 
 	SetChild(pModelObject, true);
