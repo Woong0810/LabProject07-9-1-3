@@ -6,9 +6,9 @@
 #include "Player.h"
 #include "Shader.h"
 
-static const float FIRST_PERSON_CAMERA_HEIGHT = 36.0f;
+static const float FIRST_PERSON_CAMERA_HEIGHT = 20.0f;
 static const float THIRD_PERSON_LOOK_AT_HEIGHT = 30.0f;
-static const XMFLOAT3 THIRD_PERSON_CAMERA_OFFSET = XMFLOAT3(8.0f, 45.0f, -70.0f);
+static const XMFLOAT3 THIRD_PERSON_CAMERA_OFFSET = XMFLOAT3(8.0f, 37.0f, -40.0f);
 
 static void BuildCameraOrientationFromPlayer(const XMFLOAT3& xmf3PlayerRight, const XMFLOAT3& xmf3PlayerUp, const XMFLOAT3& xmf3PlayerLook, float fPitch, XMFLOAT3& xmf3CameraRight, XMFLOAT3& xmf3CameraUp, XMFLOAT3& xmf3CameraLook)
 {
@@ -111,11 +111,15 @@ void CPlayer::Rotate(float x, float y, float z)
 	DWORD nCurrentCameraMode = m_pCamera->GetMode();
 	if ((nCurrentCameraMode == FIRST_PERSON_CAMERA) || (nCurrentCameraMode == THIRD_PERSON_CAMERA))
 	{
-		if (x != 0.0f)
+		if ((nCurrentCameraMode == FIRST_PERSON_CAMERA) && (x != 0.0f))
 		{
 			m_fPitch += x;
 			if (m_fPitch > +89.0f) { x -= (m_fPitch - 89.0f); m_fPitch = +89.0f; }
 			if (m_fPitch < -89.0f) { x -= (m_fPitch + 89.0f); m_fPitch = -89.0f; }
+		}
+		else if (nCurrentCameraMode == THIRD_PERSON_CAMERA)
+		{
+			x = 0.0f;
 		}
 		if (y != 0.0f)
 		{
@@ -309,6 +313,7 @@ CCamera *CAirplanePlayer::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 			m_pCamera = OnChangeCamera(FIRST_PERSON_CAMERA, nCurrentCameraMode);
 			m_pCamera->SetTimeLag(0.0f);
 			m_pCamera->SetOffset(XMFLOAT3(0.0f, FIRST_PERSON_CAMERA_HEIGHT, 0.0f));
+			if (nCurrentCameraMode == THIRD_PERSON_CAMERA) m_fPitch = 0.0f;
 			m_pCamera->GenerateProjectionMatrix(1.01f, 5000.0f, ASPECT_RATIO, 60.0f);
 			m_pCamera->SetViewport(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, 0.0f, 1.0f);
 			m_pCamera->SetScissorRect(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT);
