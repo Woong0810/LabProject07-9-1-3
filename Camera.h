@@ -79,6 +79,7 @@ public:
 	XMFLOAT3& GetRightVector() { return(m_xmf3Right); }
 	XMFLOAT3& GetUpVector() { return(m_xmf3Up); }
 	XMFLOAT3& GetLookVector() { return(m_xmf3Look); }
+	void SetOrientation(const XMFLOAT3& xmf3Right, const XMFLOAT3& xmf3Up, const XMFLOAT3& xmf3Look) { m_xmf3Right = xmf3Right; m_xmf3Up = xmf3Up; m_xmf3Look = xmf3Look; }
 
 	float& GetPitch() { return(m_fPitch); }
 	float& GetRoll() { return(m_fRoll); }

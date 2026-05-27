@@ -78,7 +78,10 @@ static const int MAZE_WIDTH = 23;
 static const int MAZE_HEIGHT = 17;
 static const int MAZE_FLOOR_COUNT = 2;
 static const float MAZE_CELL_SIZE = 30.0f;
-static const float MAZE_SECOND_FLOOR_HEIGHT = 30.0f;
+static const float MAZE_SECOND_FLOOR_HEIGHT = 120.0f;
+static const float MAZE_WALL_HEIGHT = 120.0f;
+static const float MAZE_DOOR_HEIGHT = 92.0f;
+static const int MAZE_STAIR_STEP_COUNT = 12;
 static const float PLAYER_HEIGHT_OFFSET = 8.0f;
 static const float DOOR_TRIGGER_DISTANCE = 34.0f;
 static const float DOOR_OPEN_SPEED = 2.8f;
@@ -101,27 +104,27 @@ static const char g_pStage1Floor0Map[] =
 	"###########.....#.....#"
 	"#.......D.......D.....#"
 	"#.......#.......###^###"
-	"#.......#.......###.###"
+	"#.......#.......#######"
 	"#######################";
 
 static const char g_pStage1Floor1Map[] =
-	"                       "
-	"             ######### "
-	"             #.......# "
-	"             #.......# "
-	"             #..D....# "
-	"             ###.##### "
-	"                 #....#"
-	"                 #....#"
-	"             #####D####"
-	"             #........#"
-	"             #........#"
-	"             #........#"
-	"             #........#"
-	"             #........#"
-	"             ###.##...#"
-	"                 #....#"
-	"                       ";
+	"#######################"
+	"#.............D.......#"
+	"#.............#.......#"
+	"###############.......#"
+	"#.............#.......#"
+	"#.............#.......#"
+	"#.............###D#####"
+	"#.............#.......#"
+	"#.............D.......#"
+	"#.............###D#####"
+	"#.............#.......#"
+	"#.............#.......#"
+	"#.............#.......#"
+	"#####D#########.......#"
+	"#.....................#"
+	"#.....................#"
+	"#######################";
 
 static const MAZE_MAP_DESC g_pMazeMaps[] =
 {
@@ -366,14 +369,14 @@ void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *p
 
 				if (tile == '#')
 				{
-					XMFLOAT3 xmf3WallPosition = GetMazeCellPosition(x, z, map.m_nWidth, map.m_nHeight, fFloorHeight + 15.0f);
-					ppObjects.push_back(CreateColoredBoxObject(pd3dDevice, pd3dCommandList, xmf3WallPosition, XMFLOAT3(MAZE_CELL_SIZE, 30.0f, MAZE_CELL_SIZE), map.m_xmf4WallColor));
+					XMFLOAT3 xmf3WallPosition = GetMazeCellPosition(x, z, map.m_nWidth, map.m_nHeight, fFloorHeight + (MAZE_WALL_HEIGHT * 0.5f));
+					ppObjects.push_back(CreateColoredBoxObject(pd3dDevice, pd3dCommandList, xmf3WallPosition, XMFLOAT3(MAZE_CELL_SIZE, MAZE_WALL_HEIGHT, MAZE_CELL_SIZE), map.m_xmf4WallColor));
 				}
 				else if (tile == 'D')
 				{
 					bool bHorizontalDoor = IsHorizontalDoor(map, floor, x, z);
-					XMFLOAT3 xmf3DoorPosition = GetMazeCellPosition(x, z, map.m_nWidth, map.m_nHeight, fFloorHeight + 11.0f);
-					XMFLOAT3 xmf3DoorScale = bHorizontalDoor ? XMFLOAT3(MAZE_CELL_SIZE * 0.90f, 22.0f, 4.0f) : XMFLOAT3(4.0f, 22.0f, MAZE_CELL_SIZE * 0.90f);
+					XMFLOAT3 xmf3DoorPosition = GetMazeCellPosition(x, z, map.m_nWidth, map.m_nHeight, fFloorHeight + (MAZE_DOOR_HEIGHT * 0.5f));
+					XMFLOAT3 xmf3DoorScale = bHorizontalDoor ? XMFLOAT3(MAZE_CELL_SIZE * 0.90f, MAZE_DOOR_HEIGHT, 4.0f) : XMFLOAT3(4.0f, MAZE_DOOR_HEIGHT, MAZE_CELL_SIZE * 0.90f);
 					CGameObject *pDoorObject = CreateColoredBoxObject(pd3dDevice, pd3dCommandList, xmf3DoorPosition, xmf3DoorScale, map.m_xmf4DoorColor);
 					ppObjects.push_back(pDoorObject);
 
@@ -393,10 +396,10 @@ void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *p
 			if (baseTile == '^')
 			{
 				XMFLOAT3 xmf3CellCenter = GetMazeCellPosition(x, z, map.m_nWidth, map.m_nHeight, 0.0f);
-				for (int i = 0; i < 6; i++)
+				for (int i = 0; i < MAZE_STAIR_STEP_COUNT; i++)
 				{
-					float fStepHeight = (i + 1) * 5.0f;
-					float fStepDepth = MAZE_CELL_SIZE / 6.0f;
+					float fStepHeight = ((float)(i + 1) / (float)MAZE_STAIR_STEP_COUNT) * MAZE_SECOND_FLOOR_HEIGHT;
+					float fStepDepth = MAZE_CELL_SIZE / (float)MAZE_STAIR_STEP_COUNT;
 					XMFLOAT3 xmf3StepPosition = XMFLOAT3(xmf3CellCenter.x, fStepHeight * 0.5f, xmf3CellCenter.z - (MAZE_CELL_SIZE * 0.5f) + (fStepDepth * 0.5f) + (fStepDepth * i));
 					ppObjects.push_back(CreateColoredBoxObject(pd3dDevice, pd3dCommandList, xmf3StepPosition, XMFLOAT3(MAZE_CELL_SIZE * 0.85f, fStepHeight, fStepDepth), map.m_xmf4StairColor));
 				}
