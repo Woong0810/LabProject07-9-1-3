@@ -15,51 +15,52 @@ CScene::~CScene()
 
 void CScene::BuildDefaultLightsAndMaterials()
 {
-	m_nLights = 4;
+	m_nLights = 14;
 	m_pLights = new LIGHT[m_nLights];
 	::ZeroMemory(m_pLights, sizeof(LIGHT) * m_nLights);
 
-	m_xmf4GlobalAmbient = XMFLOAT4(0.15f, 0.15f, 0.15f, 1.0f);
+	m_xmf4GlobalAmbient = XMFLOAT4(0.05f, 0.05f, 0.055f, 1.0f);
 
 	m_pLights[0].m_bEnable = true;
-	m_pLights[0].m_nType = POINT_LIGHT;
-	m_pLights[0].m_fRange = 1000.0f;
-	m_pLights[0].m_xmf4Ambient = XMFLOAT4(0.1f, 0.0f, 0.0f, 1.0f);
-	m_pLights[0].m_xmf4Diffuse = XMFLOAT4(0.8f, 0.0f, 0.0f, 1.0f);
-	m_pLights[0].m_xmf4Specular = XMFLOAT4(0.5f, 0.5f, 0.5f, 0.0f);
-	m_pLights[0].m_xmf3Position = XMFLOAT3(30.0f, 30.0f, 30.0f);
-	m_pLights[0].m_xmf3Direction = XMFLOAT3(0.0f, 0.0f, 0.0f);
-	m_pLights[0].m_xmf3Attenuation = XMFLOAT3(1.0f, 0.001f, 0.0001f);
+	m_pLights[0].m_nType = DIRECTIONAL_LIGHT;
+	m_pLights[0].m_xmf4Ambient = XMFLOAT4(0.015f, 0.015f, 0.018f, 1.0f);
+	m_pLights[0].m_xmf4Diffuse = XMFLOAT4(0.10f, 0.10f, 0.11f, 1.0f);
+	m_pLights[0].m_xmf4Specular = XMFLOAT4(0.05f, 0.05f, 0.05f, 8.0f);
+	m_pLights[0].m_xmf3Direction = XMFLOAT3(0.35f, -1.0f, 0.25f);
+
 	m_pLights[1].m_bEnable = true;
 	m_pLights[1].m_nType = SPOT_LIGHT;
-	m_pLights[1].m_fRange = 500.0f;
-	m_pLights[1].m_xmf4Ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	m_pLights[1].m_xmf4Diffuse = XMFLOAT4(0.4f, 0.4f, 0.4f, 1.0f);
-	m_pLights[1].m_xmf4Specular = XMFLOAT4(0.3f, 0.3f, 0.3f, 0.0f);
+	m_pLights[1].m_fRange = 260.0f;
+	m_pLights[1].m_xmf4Ambient = XMFLOAT4(0.02f, 0.02f, 0.02f, 1.0f);
+	m_pLights[1].m_xmf4Diffuse = XMFLOAT4(0.80f, 0.82f, 0.74f, 1.0f);
+	m_pLights[1].m_xmf4Specular = XMFLOAT4(0.25f, 0.25f, 0.22f, 16.0f);
 	m_pLights[1].m_xmf3Position = XMFLOAT3(-50.0f, 20.0f, -5.0f);
 	m_pLights[1].m_xmf3Direction = XMFLOAT3(0.0f, 0.0f, 1.0f);
-	m_pLights[1].m_xmf3Attenuation = XMFLOAT3(1.0f, 0.01f, 0.0001f);
-	m_pLights[1].m_fFalloff = 8.0f;
-	m_pLights[1].m_fPhi = (float)cos(XMConvertToRadians(40.0f));
-	m_pLights[1].m_fTheta = (float)cos(XMConvertToRadians(20.0f));
-	m_pLights[2].m_bEnable = true;
-	m_pLights[2].m_nType = DIRECTIONAL_LIGHT;
-	m_pLights[2].m_xmf4Ambient = XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f);
-	m_pLights[2].m_xmf4Diffuse = XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
-	m_pLights[2].m_xmf4Specular = XMFLOAT4(0.4f, 0.4f, 0.4f, 0.0f);
-	m_pLights[2].m_xmf3Direction = XMFLOAT3(1.0f, 0.0f, 0.0f);
-	m_pLights[3].m_bEnable = true;
-	m_pLights[3].m_nType = SPOT_LIGHT;
-	m_pLights[3].m_fRange = 600.0f;
-	m_pLights[3].m_xmf4Ambient = XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f);
-	m_pLights[3].m_xmf4Diffuse = XMFLOAT4(0.3f, 0.7f, 0.0f, 1.0f);
-	m_pLights[3].m_xmf4Specular = XMFLOAT4(0.3f, 0.3f, 0.3f, 0.0f);
-	m_pLights[3].m_xmf3Position = XMFLOAT3(50.0f, 30.0f, 30.0f);
-	m_pLights[3].m_xmf3Direction = XMFLOAT3(0.0f, 1.0f, 1.0f);
-	m_pLights[3].m_xmf3Attenuation = XMFLOAT3(1.0f, 0.01f, 0.0001f);
-	m_pLights[3].m_fFalloff = 8.0f;
-	m_pLights[3].m_fPhi = (float)cos(XMConvertToRadians(90.0f));
-	m_pLights[3].m_fTheta = (float)cos(XMConvertToRadians(30.0f));
+	m_pLights[1].m_xmf3Attenuation = XMFLOAT3(1.0f, 0.004f, 0.00008f);
+	m_pLights[1].m_fFalloff = 10.0f;
+	m_pLights[1].m_fPhi = (float)cos(XMConvertToRadians(36.0f));
+	m_pLights[1].m_fTheta = (float)cos(XMConvertToRadians(18.0f));
+
+	const XMFLOAT3 pxmf3CeilingLightPositions[] =
+	{
+		XMFLOAT3(-210.0f, 43.0f, -150.0f), XMFLOAT3(-30.0f, 43.0f, -150.0f), XMFLOAT3(180.0f, 43.0f, -120.0f),
+		XMFLOAT3(-210.0f, 43.0f, 60.0f), XMFLOAT3(0.0f, 43.0f, 30.0f), XMFLOAT3(180.0f, 43.0f, 120.0f),
+		XMFLOAT3(-210.0f, 93.0f, -120.0f), XMFLOAT3(0.0f, 93.0f, -120.0f), XMFLOAT3(180.0f, 93.0f, -120.0f),
+		XMFLOAT3(-210.0f, 93.0f, 90.0f), XMFLOAT3(0.0f, 93.0f, 90.0f), XMFLOAT3(180.0f, 93.0f, 90.0f)
+	};
+
+	for (int i = 0; i < _countof(pxmf3CeilingLightPositions); i++)
+	{
+		LIGHT& light = m_pLights[i + 2];
+		light.m_bEnable = true;
+		light.m_nType = POINT_LIGHT;
+		light.m_fRange = 155.0f;
+		light.m_xmf4Ambient = XMFLOAT4(0.025f, 0.025f, 0.023f, 1.0f);
+		light.m_xmf4Diffuse = XMFLOAT4(0.45f, 0.44f, 0.38f, 1.0f);
+		light.m_xmf4Specular = XMFLOAT4(0.10f, 0.10f, 0.09f, 12.0f);
+		light.m_xmf3Position = pxmf3CeilingLightPositions[i];
+		light.m_xmf3Attenuation = XMFLOAT3(1.0f, 0.003f, 0.00022f);
+	}
 }
 
 struct MAZE_MAP_DESC
