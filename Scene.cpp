@@ -143,21 +143,21 @@ static const char g_pStage1Floor1Map[] =
 
 static const char g_pStage2Floor0Map[] =
 	"#######################"
-	"#.....................#"
-	"#.....................#"
-	"#.....................#"
-	"#.....................#"
-	"#.....................#"
-	"#.....................#"
-	"#.....................#"
-	"#.....................#"
-	"#.....................#"
-	"#.....................#"
-	"#.....................#"
-	"#.....................#"
-	"#.....................#"
-	"#..............^......#"
-	"#.....................#"
+	"#.......D........D....#"
+	"#...#####..#..####....#"
+	"#########..#.....######"
+	"#.......D.##........###"
+	"#.......##............#"
+	"##D######....###......#"
+	"#..........##...###D###"
+	"#.........#.....#.....#"
+	"#..##..####.....D.....#"
+	"#..##..#......###.....#"
+	"#..###D###......#.....#"
+	"#..#.....#......##....#"
+	"#..#.....###.....###..#"
+	"#..D...........^.#....#"
+	"#..#.............#....#"
 	"#######################";
 
 static const char g_pStage2Floor1Map[] =
@@ -304,15 +304,19 @@ static float GetMazeFloorHeight(float x, float z, float y, const MAZE_MAP_DESC& 
 
 static XMFLOAT3 FindMazeSpawnPosition(const MAZE_MAP_DESC& map)
 {
-	for (int z = 0; z < map.m_nHeight; z++)
+	for (int floor = 0; floor < MAZE_FLOOR_COUNT; floor++)
 	{
-		for (int x = 0; x < map.m_nWidth; x++)
+		for (int z = 0; z < map.m_nHeight; z++)
 		{
-			if (GetMazeTileAtCell(map, 0, x, z) == 'S')
+			for (int x = 0; x < map.m_nWidth; x++)
 			{
-				XMFLOAT3 xmf3SpawnPosition = GetMazeCellPosition(x, z, map.m_nWidth, map.m_nHeight, 0.0f);
-				xmf3SpawnPosition.y = PLAYER_HEIGHT_OFFSET;
-				return(xmf3SpawnPosition);
+				if (GetMazeTileAtCell(map, floor, x, z) == 'S')
+				{
+					float fFloorHeight = (floor == 1) ? MAZE_SECOND_FLOOR_HEIGHT : 0.0f;
+					XMFLOAT3 xmf3SpawnPosition = GetMazeCellPosition(x, z, map.m_nWidth, map.m_nHeight, fFloorHeight);
+					xmf3SpawnPosition.y = fFloorHeight + PLAYER_HEIGHT_OFFSET;
+					return(xmf3SpawnPosition);
+				}
 			}
 		}
 	}
