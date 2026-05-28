@@ -347,9 +347,9 @@ static const float MENU_STAGE_SCALE = 500.0f;
 static const XMFLOAT3 MENU_STAGE2_POSITION = XMFLOAT3(0.0f, -40.0f, 0.0f);
 static const XMFLOAT3 MENU_STAGE2_ROTATION = XMFLOAT3(0.0f, 160.0f, 0.0f);
 
-static const RECT MENU_START_HIT_BOX = { 350, 260, 930, 485 };
-static const RECT MENU_STAGE1_HIT_BOX = { 350, 205, 930, 390 };
-static const RECT MENU_STAGE2_HIT_BOX = { 350, 340, 930, 540 };
+static const RECT MENU_START_HIT_BOX = { 350, 60, 930, 300 };
+static const RECT MENU_STAGE1_HIT_BOX = { 350, 150, 930, 300 };
+static const RECT MENU_STAGE2_HIT_BOX = { 350, 400, 930, 600 };
 
 static bool IsPointInScreenBox(int x, int y, const RECT& rect)
 {
