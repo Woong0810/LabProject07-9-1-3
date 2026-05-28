@@ -113,7 +113,6 @@ public:
 
 	std::vector<DOOR_OBJECT>	m_vDoors;
 	std::vector<ENEMY_OBJECT>	m_vEnemies;
-	CGameObject					*m_pShotTracer = NULL;
 	float						m_fShotEffectTime = 0.0f;
 
 	LIGHT						*m_pLights = NULL;
