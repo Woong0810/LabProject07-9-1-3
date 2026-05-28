@@ -418,7 +418,7 @@ void CGameFramework::BuildObjects()
 	m_pMenuCamera->GenerateProjectionMatrix(1.01f, 5000.0f, ASPECT_RATIO, 60.0f);
 	m_pMenuCamera->SetViewport(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, 0.0f, 1.0f);
 	m_pMenuCamera->SetScissorRect(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT);
-	m_pMenuCamera->GenerateViewMatrix(XMFLOAT3(0.0f, 0.0f, -230.0f), XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, 1.0f, 0.0f));
+	m_pMenuCamera->GenerateViewMatrix(XMFLOAT3(50.0f, 0.0f, -150.0f), XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, 1.0f, 0.0f));
 	m_pMenuCamera->CreateShaderVariables(m_pd3dDevice, m_pd3dCommandList);
 
 	m_pd3dCommandList->Close();

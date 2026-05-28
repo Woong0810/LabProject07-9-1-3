@@ -603,13 +603,13 @@ void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *p
 
 	m_nWorldObjects = (int)ppObjects.size();
 
-	m_pNameText = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Name_Text.bin", XMFLOAT3(-82.0f, 52.0f, 0.0f), 420.0f, XMFLOAT3(-90.0f, 180.0f, 0.0f), XMFLOAT4(0.10f, 0.76f, 1.0f, 1.0f));
+	m_pNameText = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Name_Text.bin", XMFLOAT3(0.0f, -40.0f, 0.0f), 300.0f, XMFLOAT3(-90.0f, 170.0f, -8.0f), XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f));
 	if (m_pNameText) ppObjects.push_back(m_pNameText);
-	m_pStartText = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Start_Text.bin", XMFLOAT3(-82.0f, -42.0f, 0.0f), 420.0f, XMFLOAT3(-90.0f, 180.0f, 0.0f), XMFLOAT4(1.0f, 0.92f, 0.18f, 1.0f));
+	m_pStartText = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Start_Text.bin", XMFLOAT3(0.0f, 40.0f, 0.0f), 700.0f, XMFLOAT3(-90.0f, 150.0f, 15.0f), XMFLOAT4(1.f, 0.f, 0.f, 1.0f));
 	if (m_pStartText) ppObjects.push_back(m_pStartText);
-	m_pStage1Text = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Stage_1_Text.bin", XMFLOAT3(-98.0f, 52.0f, 0.0f), 330.0f, XMFLOAT3(-90.0f, 180.0f, 0.0f), XMFLOAT4(0.35f, 1.0f, 0.42f, 1.0f));
+	m_pStage1Text = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Stage_1_Text.bin", XMFLOAT3(0.0f, 40.0f, 0.0f), 500.0f, XMFLOAT3(-90.0f, 160.0f, 0.0f), XMFLOAT4(1.f, 1.0f, 0.f, 1.0f));
 	if (m_pStage1Text) ppObjects.push_back(m_pStage1Text);
-	m_pStage2Text = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Stage_2_Text.bin", XMFLOAT3(-98.0f, -42.0f, 0.0f), 330.0f, XMFLOAT3(-90.0f, 0.0f, 0.0f), XMFLOAT4(1.0f, 0.48f, 0.28f, 1.0f));
+	m_pStage2Text = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Stage_2_Text.bin", XMFLOAT3(0.0f, -40.0f, 0.0f), 500.0f, XMFLOAT3(.0f, 160.0f, 0.0f), XMFLOAT4(0.5f, 0.5f, 0.f, 1.0f));
 	if (m_pStage2Text) ppObjects.push_back(m_pStage2Text);
 
 	m_nGameObjects = (int)ppObjects.size();
