@@ -347,9 +347,9 @@ static const float MENU_STAGE_SCALE = 500.0f;
 static const XMFLOAT3 MENU_STAGE2_POSITION = XMFLOAT3(0.0f, -40.0f, 0.0f);
 static const XMFLOAT3 MENU_STAGE2_ROTATION = XMFLOAT3(0.0f, 160.0f, 0.0f);
 
-static const RECT MENU_START_HIT_BOX = { 455, 315, 825, 430 };
-static const RECT MENU_STAGE1_HIT_BOX = { 430, 250, 850, 355 };
-static const RECT MENU_STAGE2_HIT_BOX = { 430, 370, 850, 480 };
+static const RECT MENU_START_HIT_BOX = { 350, 260, 930, 485 };
+static const RECT MENU_STAGE1_HIT_BOX = { 350, 205, 930, 390 };
+static const RECT MENU_STAGE2_HIT_BOX = { 350, 340, 930, 540 };
 
 static bool IsPointInScreenBox(int x, int y, const RECT& rect)
 {
@@ -362,7 +362,7 @@ static void UpdateMenuTextMotion(CGameObject *pTextObject, const XMFLOAT3& xmf3B
 	xmf3Position.y += sinf((fElapsedTime * 2.2f) + fPhase) * 4.0f;
 
 	XMFLOAT3 xmf3Rotation = xmf3BaseRotation;
-	if (bHovered) xmf3Rotation.y += sinf(fElapsedTime * 5.0f) * 8.0f;
+	if (bHovered) xmf3Rotation.y += fmodf(fElapsedTime * 180.0f, 360.0f);
 
 	SetMenuTextTransform(pTextObject, xmf3Position, fScale, xmf3Rotation);
 }
