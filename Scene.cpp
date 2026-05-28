@@ -95,6 +95,8 @@ static const float ENEMY_PATROL_REACH_DISTANCE = 4.0f;
 static const float ENEMY_FIRE_INTERVAL = 1.6f;
 static const int ENEMY_FIRE_DAMAGE = 10;
 static const int PLAYER_MAX_HEALTH = 100;
+static const float PLAYER_HIT_KNOCKBACK_DISTANCE = 8.0f;
+static const float PLAYER_HIT_EFFECT_DURATION = 0.16f;
 static const float PLAYER_RAY_SHOT_RANGE = 500.0f;
 static const float PLAYER_RAY_SHOT_RADIUS = 10.0f;
 static const float PLAYER_RAY_SHOT_HEIGHT = 18.0f;
@@ -531,12 +533,27 @@ void CScene::BeginStage(int nStage)
 	m_nSelectedStage = nStage;
 	m_nPlayerHealth = PLAYER_MAX_HEALTH;
 	m_bGameOver = false;
+	m_fHitEffectTime = 0.0f;
 	m_nScreenMode = SCENE_SCREEN_PLAYING;
 }
 
-void CScene::DamagePlayer(int nDamage)
+void CScene::DamagePlayer(int nDamage, const XMFLOAT3& xmf3HitDirection)
 {
 	if ((m_nScreenMode != SCENE_SCREEN_PLAYING) || m_bGameOver) return;
+
+	m_fHitEffectTime = PLAYER_HIT_EFFECT_DURATION;
+
+	if (m_pPlayer)
+	{
+		XMFLOAT3 xmf3KnockbackDirection = XMFLOAT3(xmf3HitDirection.x, 0.0f, xmf3HitDirection.z);
+		if (Vector3::Length(xmf3KnockbackDirection) > 0.001f)
+		{
+			xmf3KnockbackDirection = Vector3::Normalize(xmf3KnockbackDirection);
+			XMFLOAT3 xmf3OldPosition = m_pPlayer->GetPosition();
+			m_pPlayer->Move(Vector3::ScalarProduct(xmf3KnockbackDirection, PLAYER_HIT_KNOCKBACK_DISTANCE, false), false);
+			ResolvePlayerCollision(m_pPlayer, xmf3OldPosition, false);
+		}
+	}
 
 	m_nPlayerHealth -= nDamage;
 	if (m_nPlayerHealth <= 0)
@@ -873,6 +890,11 @@ void CScene::AnimateObjects(float fTimeElapsed)
 		m_fShotEffectTime -= fTimeElapsed;
 		if (m_fShotEffectTime <= 0.0f) m_fShotEffectTime = 0.0f;
 	}
+	if (m_fHitEffectTime > 0.0f)
+	{
+		m_fHitEffectTime -= fTimeElapsed;
+		if (m_fHitEffectTime <= 0.0f) m_fHitEffectTime = 0.0f;
+	}
 
 	if (m_nScreenMode != SCENE_SCREEN_PLAYING) return;
 
@@ -933,7 +955,7 @@ void CScene::AnimateObjects(float fTimeElapsed)
 				xmf3EnemyPosition = enemy.m_pObject->GetPosition();
 				XMFLOAT3 xmf3FireDirection = XMFLOAT3(xmf3PlayerPosition.x - xmf3EnemyPosition.x, 0.0f, xmf3PlayerPosition.z - xmf3EnemyPosition.z);
 				if (Vector3::Length(xmf3FireDirection) > 0.001f) SetObjectLookDirectionXZ(enemy.m_pObject, xmf3EnemyPosition, Vector3::Normalize(xmf3FireDirection));
-				DamagePlayer(ENEMY_FIRE_DAMAGE);
+				DamagePlayer(ENEMY_FIRE_DAMAGE, xmf3FireDirection);
 				enemy.m_fFireCooldown = ENEMY_FIRE_INTERVAL;
 			}
 		}

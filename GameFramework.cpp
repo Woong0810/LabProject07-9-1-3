@@ -549,6 +549,28 @@ void CGameFramework::RenderShootEffect(D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDesc
 	m_pd3dCommandList->ClearRenderTargetView(d3dRtvCPUDescriptorHandle, pfFlashColor, _countof(pd3dFlashRects), pd3dFlashRects);
 }
 
+void CGameFramework::RenderHitEffect(D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle)
+{
+	if (!m_pScene || !m_pScene->IsHitEffectVisible()) return;
+	if (!m_pCamera || (m_pCamera->GetMode() != FIRST_PERSON_CAMERA)) return;
+
+	const int nEdgeThickness = 42;
+	const int nCornerSize = 92;
+	D3D12_RECT pd3dHitRects[8] =
+	{
+		{ 0, 0, m_nWndClientWidth, nEdgeThickness },
+		{ 0, m_nWndClientHeight - nEdgeThickness, m_nWndClientWidth, m_nWndClientHeight },
+		{ 0, 0, nEdgeThickness, m_nWndClientHeight },
+		{ m_nWndClientWidth - nEdgeThickness, 0, m_nWndClientWidth, m_nWndClientHeight },
+		{ 0, 0, nCornerSize, nCornerSize },
+		{ m_nWndClientWidth - nCornerSize, 0, m_nWndClientWidth, nCornerSize },
+		{ 0, m_nWndClientHeight - nCornerSize, nCornerSize, m_nWndClientHeight },
+		{ m_nWndClientWidth - nCornerSize, m_nWndClientHeight - nCornerSize, m_nWndClientWidth, m_nWndClientHeight }
+	};
+	float pfHitColor[4] = { 0.95f, 0.0f, 0.0f, 1.0f };
+	m_pd3dCommandList->ClearRenderTargetView(d3dRtvCPUDescriptorHandle, pfHitColor, _countof(pd3dHitRects), pd3dHitRects);
+}
+
 static void AddUiRect(D3D12_RECT *pd3dRects, int& nRects, LONG left, LONG top, LONG right, LONG bottom)
 {
 	pd3dRects[nRects++] = { left, top, right, bottom };
@@ -718,6 +740,7 @@ void CGameFramework::FrameAdvance()
 
 	if (!m_pScene || m_pScene->IsPlaying())
 	{
+		RenderHitEffect(d3dRtvCPUDescriptorHandle);
 		RenderCrosshair(d3dRtvCPUDescriptorHandle);
 		RenderShootEffect(d3dRtvCPUDescriptorHandle);
 		RenderPlayerHealth(d3dRtvCPUDescriptorHandle);
