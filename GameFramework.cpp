@@ -35,6 +35,7 @@ CGameFramework::CGameFramework()
 
 	m_pScene = NULL;
 	m_pPlayer = NULL;
+	m_pMenuCamera = NULL;
 
 	_tcscpy_s(m_pszFrameRate, _T("LabProject ("));
 }
@@ -284,7 +285,9 @@ void CGameFramework::ChangeSwapChainState()
 
 void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
-	if (m_pScene) m_pScene->OnProcessingMouseMessage(hWnd, nMessageID, wParam, lParam);
+	bool bProcessedByScene = (m_pScene) ? m_pScene->OnProcessingMouseMessage(hWnd, nMessageID, wParam, lParam) : false;
+	if (bProcessedByScene) return;
+	if (m_pScene && !m_pScene->IsPlaying()) return;
 	switch (nMessageID)
 	{
 		case WM_LBUTTONDOWN:
@@ -305,7 +308,9 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 
 void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
-	if (m_pScene) m_pScene->OnProcessingKeyboardMessage(hWnd, nMessageID, wParam, lParam);
+	bool bProcessedByScene = (m_pScene) ? m_pScene->OnProcessingKeyboardMessage(hWnd, nMessageID, wParam, lParam) : false;
+	if (bProcessedByScene) return;
+	if (m_pScene && !m_pScene->IsPlaying() && (wParam != VK_ESCAPE)) return;
 	switch (nMessageID)
 	{
 		case WM_KEYUP:
@@ -408,6 +413,14 @@ void CGameFramework::BuildObjects()
 	m_pScene->m_pPlayer = m_pPlayer = pAirplanePlayer;
 	m_pCamera = m_pPlayer->GetCamera();
 
+	m_pMenuCamera = new CCamera();
+	m_pMenuCamera->SetMode(FIRST_PERSON_CAMERA);
+	m_pMenuCamera->GenerateProjectionMatrix(1.01f, 5000.0f, ASPECT_RATIO, 60.0f);
+	m_pMenuCamera->SetViewport(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, 0.0f, 1.0f);
+	m_pMenuCamera->SetScissorRect(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT);
+	m_pMenuCamera->GenerateViewMatrix(XMFLOAT3(0.0f, 20.0f, -230.0f), XMFLOAT3(0.0f, 15.0f, 0.0f), XMFLOAT3(0.0f, 1.0f, 0.0f));
+	m_pMenuCamera->CreateShaderVariables(m_pd3dDevice, m_pd3dCommandList);
+
 	m_pd3dCommandList->Close();
 	ID3D12CommandList *ppd3dCommandLists[] = { m_pd3dCommandList };
 	m_pd3dCommandQueue->ExecuteCommandLists(1, ppd3dCommandLists);
@@ -430,10 +443,18 @@ void CGameFramework::ReleaseObjects()
 
 	if (m_pScene) m_pScene->ReleaseObjects();
 	if (m_pScene) delete m_pScene;
+	if (m_pMenuCamera)
+	{
+		m_pMenuCamera->ReleaseShaderVariables();
+		delete m_pMenuCamera;
+		m_pMenuCamera = NULL;
+	}
 }
 
 void CGameFramework::ProcessInput()
 {
+	if (m_pScene && !m_pScene->IsPlaying()) return;
+
 	XMFLOAT3 xmf3OldPlayerPosition = m_pPlayer->GetPosition();
 	float fTimeElapsed = m_GameTimer.GetTimeElapsed();
 
@@ -483,7 +504,7 @@ void CGameFramework::AnimateObjects()
 
 	if (m_pScene) m_pScene->AnimateObjects(fTimeElapsed);
 
-	m_pPlayer->Animate(fTimeElapsed, NULL);
+	if (!m_pScene || m_pScene->IsPlaying()) m_pPlayer->Animate(fTimeElapsed, NULL);
 }
 
 void CGameFramework::RenderCrosshair(D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle)
@@ -588,15 +609,19 @@ void CGameFramework::FrameAdvance()
 
 	m_pd3dCommandList->OMSetRenderTargets(1, &d3dRtvCPUDescriptorHandle, TRUE, &d3dDsvCPUDescriptorHandle);
 
-	if (m_pScene) m_pScene->Render(m_pd3dCommandList, m_pCamera);
+	CCamera *pRenderCamera = (m_pScene && !m_pScene->IsPlaying()) ? m_pMenuCamera : m_pCamera;
+	if (m_pScene) m_pScene->Render(m_pd3dCommandList, pRenderCamera);
 
 #ifdef _WITH_PLAYER_TOP
 	m_pd3dCommandList->ClearDepthStencilView(d3dDsvCPUDescriptorHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
 #endif
-	if (m_pPlayer) m_pPlayer->Render(m_pd3dCommandList, m_pCamera);
+	if (m_pPlayer && (!m_pScene || m_pScene->IsPlaying())) m_pPlayer->Render(m_pd3dCommandList, m_pCamera);
 
-	RenderCrosshair(d3dRtvCPUDescriptorHandle);
-	RenderShootEffect(d3dRtvCPUDescriptorHandle);
+	if (!m_pScene || m_pScene->IsPlaying())
+	{
+		RenderCrosshair(d3dRtvCPUDescriptorHandle);
+		RenderShootEffect(d3dRtvCPUDescriptorHandle);
+	}
 
 	d3dResourceBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	d3dResourceBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;

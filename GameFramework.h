@@ -85,6 +85,7 @@ private:
 	CScene						*m_pScene = NULL;
 	CPlayer						*m_pPlayer = NULL;
 	CCamera						*m_pCamera = NULL;
+	CCamera						*m_pMenuCamera = NULL;
 	bool						m_bFreeFlyMode = false;
 
 	POINT						m_ptOldCursorPos;

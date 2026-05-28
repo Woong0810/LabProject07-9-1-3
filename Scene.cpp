@@ -321,6 +321,16 @@ static CGameObject *CreateArmedCharacterObject(ID3D12Device *pd3dDevice, ID3D12G
 	return(pCharacterObject);
 }
 
+static CGameObject *CreateMenuTextObject(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *pd3dCommandList, ID3D12RootSignature *pd3dGraphicsRootSignature, char *pstrFileName, const XMFLOAT3& xmf3Position, float fScale, const XMFLOAT4& xmf4Color)
+{
+	CGameObject *pTextObject = CreateLoadedModelObject(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, pstrFileName, xmf3Position, XMFLOAT3(0.0f, 0.0f, 0.0f));
+	if (!pTextObject) return(NULL);
+
+	SetObjectMaterialColorRecursive(pTextObject, xmf4Color);
+	pTextObject->SetScale(fScale, fScale, fScale);
+	return(pTextObject);
+}
+
 static float DistanceXZ(const XMFLOAT3& a, const XMFLOAT3& b)
 {
 	float dx = a.x - b.x;
@@ -463,6 +473,13 @@ bool CScene::IsPlayerBlockedAtWorld(float x, float z, float y)
 	}
 	return(false);
 }
+
+void CScene::BeginStage(int nStage)
+{
+	m_nSelectedStage = nStage;
+	m_nScreenMode = SCENE_SCREEN_PLAYING;
+}
+
 void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *pd3dCommandList)
 {
 	m_pd3dGraphicsRootSignature = CreateGraphicsRootSignature(pd3dDevice);
@@ -570,6 +587,17 @@ void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *p
 		}
 	}
 
+	m_nWorldObjects = (int)ppObjects.size();
+
+	m_pNameText = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Name_Text.bin", XMFLOAT3(-55.0f, 55.0f, 0.0f), 520.0f, XMFLOAT4(0.10f, 0.76f, 1.0f, 1.0f));
+	if (m_pNameText) ppObjects.push_back(m_pNameText);
+	m_pStartText = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Start_Text.bin", XMFLOAT3(-45.0f, -25.0f, 0.0f), 520.0f, XMFLOAT4(1.0f, 0.92f, 0.18f, 1.0f));
+	if (m_pStartText) ppObjects.push_back(m_pStartText);
+	m_pStage1Text = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Stage_1_Text.bin", XMFLOAT3(-130.0f, 15.0f, 0.0f), 420.0f, XMFLOAT4(0.35f, 1.0f, 0.42f, 1.0f));
+	if (m_pStage1Text) ppObjects.push_back(m_pStage1Text);
+	m_pStage2Text = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Stage_2_Text.bin", XMFLOAT3(35.0f, 15.0f, 0.0f), 420.0f, XMFLOAT4(1.0f, 0.48f, 0.28f, 1.0f));
+	if (m_pStage2Text) ppObjects.push_back(m_pStage2Text);
+
 	m_nGameObjects = (int)ppObjects.size();
 	m_ppGameObjects = new CGameObject*[m_nGameObjects];
 	for (int i = 0; i < m_nGameObjects; i++) m_ppGameObjects[i] = ppObjects[i];
@@ -591,6 +619,10 @@ void CScene::ReleaseObjects()
 	m_vDoors.clear();
 	m_vEnemies.clear();
 	m_fShotEffectTime = 0.0f;
+	m_pNameText = NULL;
+	m_pStartText = NULL;
+	m_pStage1Text = NULL;
+	m_pStage2Text = NULL;
 
 	if (m_pLights) delete[] m_pLights;
 }
@@ -674,11 +706,64 @@ void CScene::ReleaseUploadBuffers()
 
 bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
+	if (nMessageID == WM_LBUTTONDOWN)
+	{
+		int x = LOWORD(lParam);
+		int y = HIWORD(lParam);
+
+		if (m_nScreenMode == SCENE_SCREEN_TITLE)
+		{
+			if ((x >= 430) && (x <= 850) && (y >= 330) && (y <= 520))
+			{
+				m_nScreenMode = SCENE_SCREEN_STAGE_SELECT;
+				return(true);
+			}
+		}
+		else if (m_nScreenMode == SCENE_SCREEN_STAGE_SELECT)
+		{
+			if ((x >= 170) && (x <= 610) && (y >= 260) && (y <= 500))
+			{
+				BeginStage(1);
+				return(true);
+			}
+			if ((x >= 670) && (x <= 1110) && (y >= 260) && (y <= 500))
+			{
+				BeginStage(2);
+				return(true);
+			}
+		}
+	}
 	return(false);
 }
 
 bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
+	if (nMessageID == WM_KEYDOWN)
+	{
+		if (m_nScreenMode == SCENE_SCREEN_TITLE)
+		{
+			if ((wParam == VK_SPACE) || (wParam == VK_RETURN))
+			{
+				m_nScreenMode = SCENE_SCREEN_STAGE_SELECT;
+				return(true);
+			}
+		}
+		else if (m_nScreenMode == SCENE_SCREEN_STAGE_SELECT)
+		{
+			if (wParam == '1')
+			{
+				BeginStage(1);
+				return(true);
+			}
+			if (wParam == '2')
+			{
+				BeginStage(2);
+				return(true);
+			}
+		}
+	}
+	if (m_nScreenMode != SCENE_SCREEN_PLAYING) return(false);
+
 	if ((nMessageID == WM_KEYDOWN) && (wParam == VK_SPACE) && ((lParam & 0x40000000) == 0))
 	{
 		FireRayShot();
@@ -689,6 +774,7 @@ bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 
 bool CScene::ProcessInput(UCHAR *pKeysBuffer)
 {
+	if (m_nScreenMode != SCENE_SCREEN_PLAYING) return(true);
 	return(false);
 }
 
@@ -696,13 +782,16 @@ void CScene::AnimateObjects(float fTimeElapsed)
 {
 	m_fElapsedTime = fTimeElapsed;
 
-	for (int i = 0; i < m_nGameObjects; i++) m_ppGameObjects[i]->Animate(fTimeElapsed, NULL);
+	int nAnimateObjects = (m_nScreenMode == SCENE_SCREEN_PLAYING) ? m_nWorldObjects : m_nGameObjects;
+	for (int i = 0; i < nAnimateObjects; i++) m_ppGameObjects[i]->Animate(fTimeElapsed, NULL);
 
 	if (m_fShotEffectTime > 0.0f)
 	{
 		m_fShotEffectTime -= fTimeElapsed;
 		if (m_fShotEffectTime <= 0.0f) m_fShotEffectTime = 0.0f;
 	}
+
+	if (m_nScreenMode != SCENE_SCREEN_PLAYING) return;
 
 	const MAZE_MAP_DESC& map = g_pMazeMaps[0];
 	XMFLOAT3 xmf3PlayerPosition = (m_pPlayer) ? m_pPlayer->GetPosition() : XMFLOAT3(0.0f, 0.0f, 0.0f);
@@ -862,7 +951,33 @@ void CScene::Render(ID3D12GraphicsCommandList *pd3dCommandList, CCamera *pCamera
 	D3D12_GPU_VIRTUAL_ADDRESS d3dcbLightsGpuVirtualAddress = m_pd3dcbLights->GetGPUVirtualAddress();
 	pd3dCommandList->SetGraphicsRootConstantBufferView(2, d3dcbLightsGpuVirtualAddress); //Lights
 
-	for (int i = 0; i < m_nGameObjects; i++)
+	if (m_nScreenMode != SCENE_SCREEN_PLAYING)
+	{
+		CGameObject *pMenuObjects[2] = { NULL, NULL };
+		if (m_nScreenMode == SCENE_SCREEN_TITLE)
+		{
+			pMenuObjects[0] = m_pNameText;
+			pMenuObjects[1] = m_pStartText;
+		}
+		else
+		{
+			pMenuObjects[0] = m_pStage1Text;
+			pMenuObjects[1] = m_pStage2Text;
+		}
+
+		for (int i = 0; i < _countof(pMenuObjects); i++)
+		{
+			if (pMenuObjects[i])
+			{
+				pMenuObjects[i]->Animate(m_fElapsedTime, NULL);
+				pMenuObjects[i]->UpdateTransform(NULL);
+				pMenuObjects[i]->Render(pd3dCommandList, pCamera, pMenuObjects[i]->m_ppd3dcbInstancingGameObjects, pMenuObjects[i]->m_ppcbMappedInstancingGameObjects);
+			}
+		}
+		return;
+	}
+
+	for (int i = 0; i < m_nWorldObjects; i++)
 	{
 		if (m_ppGameObjects[i])
 		{

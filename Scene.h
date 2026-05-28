@@ -73,6 +73,13 @@ struct ENEMY_OBJECT
 	XMFLOAT3				m_xmf3LastKnownPlayerPosition = XMFLOAT3(0.0f, 0.0f, 0.0f);
 };
 
+enum SCENE_SCREEN_MODE
+{
+	SCENE_SCREEN_TITLE = 0,
+	SCENE_SCREEN_STAGE_SELECT,
+	SCENE_SCREEN_PLAYING
+};
+
 class CScene
 {
 public:
@@ -98,6 +105,9 @@ public:
     void Render(ID3D12GraphicsCommandList *pd3dCommandList, CCamera *pCamera=NULL);
 	bool FireRayShot();
 	bool IsShotEffectVisible() const { return(m_fShotEffectTime > 0.0f); }
+	bool IsPlaying() const { return(m_nScreenMode == SCENE_SCREEN_PLAYING); }
+	SCENE_SCREEN_MODE GetScreenMode() const { return(m_nScreenMode); }
+	void BeginStage(int nStage);
 
 	void ReleaseUploadBuffers();
 	void ResolvePlayerCollision(CPlayer *pPlayer, const XMFLOAT3& xmf3OldPosition, bool bFreeFlyMode);
@@ -110,6 +120,13 @@ public:
 
 	CGameObject					**m_ppGameObjects = NULL;
 	int							m_nGameObjects = 0;
+	int							m_nWorldObjects = 0;
+	CGameObject					*m_pNameText = NULL;
+	CGameObject					*m_pStartText = NULL;
+	CGameObject					*m_pStage1Text = NULL;
+	CGameObject					*m_pStage2Text = NULL;
+	SCENE_SCREEN_MODE			m_nScreenMode = SCENE_SCREEN_TITLE;
+	int							m_nSelectedStage = 1;
 
 	std::vector<DOOR_OBJECT>	m_vDoors;
 	std::vector<ENEMY_OBJECT>	m_vEnemies;
