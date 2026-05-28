@@ -539,7 +539,7 @@ void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *p
 	{
 		{ 16, 2, 0 },
 		{ 7, 7, 0 },
-		{ 18, 13, 1 },
+		{ 18, 10, 1 },
 		{ 19, 2, 0 },
 		{ 18, 6, 0 },
 		{ 3, 14, 0 },
