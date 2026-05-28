@@ -92,6 +92,9 @@ static const float ENEMY_VIEW_HALF_ANGLE = 55.0f;
 static const float ENEMY_SEARCH_DURATION = 4.0f;
 static const float ENEMY_PATROL_DISTANCE = 60.0f;
 static const float ENEMY_PATROL_REACH_DISTANCE = 4.0f;
+static const float PLAYER_RAY_SHOT_RANGE = 500.0f;
+static const float PLAYER_RAY_SHOT_RADIUS = 10.0f;
+static const float PLAYER_RAY_SHOT_HEIGHT = 18.0f;
 
 static const char g_pStage1Floor0Map[] =
 	"#######################"
@@ -363,6 +366,56 @@ static bool HasLineOfSightToPlayer(const XMFLOAT3& xmf3EnemyPosition, const XMFL
 	return(true);
 }
 
+static bool RayIntersectsSphere(const XMFLOAT3& xmf3RayOrigin, const XMFLOAT3& xmf3RayDirection, const XMFLOAT3& xmf3SphereCenter, float fSphereRadius, float fMaxDistance, float& fHitDistance)
+{
+	XMVECTOR xmvRayOrigin = XMLoadFloat3(&xmf3RayOrigin);
+	XMVECTOR xmvRayDirection = XMVector3Normalize(XMLoadFloat3(&xmf3RayDirection));
+	XMVECTOR xmvSphereCenter = XMLoadFloat3(&xmf3SphereCenter);
+	XMVECTOR xmvOriginToCenter = xmvSphereCenter - xmvRayOrigin;
+
+	float fProjectedDistance = XMVectorGetX(XMVector3Dot(xmvOriginToCenter, xmvRayDirection));
+	if (fProjectedDistance < 0.0f) return(false);
+
+	float fDistanceSqToRay = XMVectorGetX(XMVector3LengthSq(xmvOriginToCenter)) - (fProjectedDistance * fProjectedDistance);
+	float fRadiusSq = fSphereRadius * fSphereRadius;
+	if (fDistanceSqToRay > fRadiusSq) return(false);
+
+	float fHalfChord = sqrtf(fRadiusSq - fDistanceSqToRay);
+	fHitDistance = fProjectedDistance - fHalfChord;
+	if (fHitDistance < 0.0f) fHitDistance = fProjectedDistance + fHalfChord;
+
+	return((fHitDistance >= 0.0f) && (fHitDistance <= fMaxDistance));
+}
+
+static bool IsRayBlockedBeforeDistance(const XMFLOAT3& xmf3RayOrigin, const XMFLOAT3& xmf3RayDirection, float fHitDistance, const MAZE_MAP_DESC& map, const std::vector<DOOR_OBJECT>& doors)
+{
+	int nSteps = (int)(fHitDistance / (MAZE_CELL_SIZE * 0.25f));
+	if (nSteps < 2) return(false);
+
+	for (int i = 1; i < nSteps; i++)
+	{
+		float t = (float)i / (float)nSteps;
+		float x = xmf3RayOrigin.x + (xmf3RayDirection.x * fHitDistance * t);
+		float y = xmf3RayOrigin.y + (xmf3RayDirection.y * fHitDistance * t);
+		float z = xmf3RayOrigin.z + (xmf3RayDirection.z * fHitDistance * t);
+		if (IsBlockedAtWorld(x, z, y, map, doors)) return(true);
+	}
+	return(false);
+}
+
+static XMFLOAT3 GetPlayerShotDirection(CPlayer *pPlayer)
+{
+	XMFLOAT3 xmf3ShotDirection = pPlayer->GetLookVector();
+	CCamera *pCamera = pPlayer->GetCamera();
+	if (pCamera && (pCamera->GetMode() == FIRST_PERSON_CAMERA) && (pPlayer->GetPitch() != 0.0f))
+	{
+		XMFLOAT3 xmf3Right = pPlayer->GetRightVector();
+		XMMATRIX xmmtxPitch = XMMatrixRotationAxis(XMLoadFloat3(&xmf3Right), XMConvertToRadians(pPlayer->GetPitch()));
+		xmf3ShotDirection = Vector3::TransformNormal(xmf3ShotDirection, xmmtxPitch);
+	}
+	return(Vector3::Normalize(xmf3ShotDirection));
+}
+
 static bool CanEnemySeePlayer(const ENEMY_OBJECT& enemy, const XMFLOAT3& xmf3EnemyPosition, const XMFLOAT3& xmf3PlayerPosition, const MAZE_MAP_DESC& map, const std::vector<DOOR_OBJECT>& doors)
 {
 	if (!enemy.m_pObject) return(false);
@@ -622,6 +675,11 @@ bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam,
 
 bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
+	if ((nMessageID == WM_KEYDOWN) && (wParam == VK_SPACE) && ((lParam & 0x40000000) == 0))
+	{
+		FireRayShot();
+		return(true);
+	}
 	return(false);
 }
 
@@ -668,7 +726,7 @@ void CScene::AnimateObjects(float fTimeElapsed)
 	for (size_t i = 0; i < m_vEnemies.size(); i++)
 	{
 		ENEMY_OBJECT& enemy = m_vEnemies[i];
-		if (!enemy.m_pObject || !m_pPlayer) continue;
+		if (!enemy.m_bAlive || !enemy.m_pObject || !m_pPlayer) continue;
 
 		XMFLOAT3 xmf3EnemyPosition = enemy.m_pObject->GetPosition();
 		bool bCanSeePlayer = CanEnemySeePlayer(enemy, xmf3EnemyPosition, xmf3PlayerPosition, map, m_vDoors);
@@ -729,6 +787,55 @@ void CScene::ResolvePlayerCollision(CPlayer *pPlayer, const XMFLOAT3& xmf3OldPos
 
 	xmf3ResolvedPosition.y = GetMazeFloorHeight(xmf3ResolvedPosition.x, xmf3ResolvedPosition.z, xmf3OldPosition.y, map) + PLAYER_HEIGHT_OFFSET;
 	pPlayer->SetPosition(xmf3ResolvedPosition);
+}
+
+bool CScene::FireRayShot()
+{
+	if (!m_pPlayer) return(false);
+
+	XMFLOAT3 xmf3RayOrigin = m_pPlayer->GetPosition();
+	xmf3RayOrigin.y += PLAYER_RAY_SHOT_HEIGHT;
+	XMFLOAT3 xmf3RayDirection = GetPlayerShotDirection(m_pPlayer);
+
+	const MAZE_MAP_DESC& map = g_pMazeMaps[0];
+	int nBestEnemy = -1;
+	float fBestHitDistance = PLAYER_RAY_SHOT_RANGE;
+
+	for (size_t i = 0; i < m_vEnemies.size(); i++)
+	{
+		ENEMY_OBJECT& enemy = m_vEnemies[i];
+		if (!enemy.m_bAlive || !enemy.m_pObject) continue;
+
+		XMFLOAT3 xmf3EnemyPosition = enemy.m_pObject->GetPosition();
+		XMFLOAT3 xmf3EnemyCenter = XMFLOAT3(xmf3EnemyPosition.x, xmf3EnemyPosition.y + PLAYER_RAY_SHOT_HEIGHT, xmf3EnemyPosition.z);
+		float fHitDistance = 0.0f;
+		if (!RayIntersectsSphere(xmf3RayOrigin, xmf3RayDirection, xmf3EnemyCenter, PLAYER_RAY_SHOT_RADIUS, PLAYER_RAY_SHOT_RANGE, fHitDistance)) continue;
+		if (fHitDistance >= fBestHitDistance) continue;
+		if (IsRayBlockedBeforeDistance(xmf3RayOrigin, xmf3RayDirection, fHitDistance, map, m_vDoors)) continue;
+
+		fBestHitDistance = fHitDistance;
+		nBestEnemy = (int)i;
+	}
+
+	if (nBestEnemy < 0) return(false);
+
+	ENEMY_OBJECT& enemy = m_vEnemies[nBestEnemy];
+	enemy.m_nHealth--;
+	if (enemy.m_nHealth <= 0)
+	{
+		enemy.m_bAlive = false;
+		SetObjectMaterialColorRecursive(enemy.m_pObject, XMFLOAT4(0.08f, 0.08f, 0.08f, 1.0f));
+
+		XMFLOAT3 xmf3EnemyPosition = enemy.m_pObject->GetPosition();
+		xmf3EnemyPosition.y -= 1000.0f;
+		enemy.m_pObject->SetPosition(xmf3EnemyPosition);
+	}
+	else
+	{
+		SetObjectMaterialColorRecursive(enemy.m_pObject, XMFLOAT4(1.0f, 0.85f, 0.12f, 1.0f));
+	}
+
+	return(true);
 }
 void CScene::Render(ID3D12GraphicsCommandList *pd3dCommandList, CCamera *pCamera)
 {

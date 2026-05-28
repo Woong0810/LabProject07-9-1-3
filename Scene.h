@@ -64,6 +64,8 @@ struct ENEMY_OBJECT
 	float					m_fMoveSpeed = 18.0f;
 	ENEMY_AI_STATE			m_nState = ENEMY_AI_PATROL;
 	int						m_nFloor = 0;
+	bool					m_bAlive = true;
+	int						m_nHealth = 1;
 	bool					m_bMovingToPatrolTarget = true;
 	float					m_fSearchTime = 0.0f;
 	XMFLOAT3				m_xmf3SpawnPosition = XMFLOAT3(0.0f, 0.0f, 0.0f);
@@ -94,6 +96,7 @@ public:
 	bool ProcessInput(UCHAR *pKeysBuffer);
     void AnimateObjects(float fTimeElapsed);
     void Render(ID3D12GraphicsCommandList *pd3dCommandList, CCamera *pCamera=NULL);
+	bool FireRayShot();
 
 	void ReleaseUploadBuffers();
 	void ResolvePlayerCollision(CPlayer *pPlayer, const XMFLOAT3& xmf3OldPosition, bool bFreeFlyMode);
