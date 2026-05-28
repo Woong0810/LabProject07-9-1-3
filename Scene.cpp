@@ -332,6 +332,41 @@ static void SetMenuTextTransform(CGameObject *pTextObject, const XMFLOAT3& xmf3P
 	pTextObject->UpdateTransform(NULL);
 }
 
+static const XMFLOAT3 MENU_NAME_POSITION = XMFLOAT3(0.0f, -40.0f, 0.0f);
+static const XMFLOAT3 MENU_NAME_ROTATION = XMFLOAT3(-90.0f, 170.0f, -8.0f);
+static const float MENU_NAME_SCALE = 300.0f;
+
+static const XMFLOAT3 MENU_START_POSITION = XMFLOAT3(0.0f, 40.0f, 0.0f);
+static const XMFLOAT3 MENU_START_ROTATION = XMFLOAT3(-90.0f, 150.0f, 15.0f);
+static const float MENU_START_SCALE = 700.0f;
+
+static const XMFLOAT3 MENU_STAGE1_POSITION = XMFLOAT3(0.0f, 40.0f, 0.0f);
+static const XMFLOAT3 MENU_STAGE1_ROTATION = XMFLOAT3(-90.0f, 160.0f, 0.0f);
+static const float MENU_STAGE_SCALE = 500.0f;
+
+static const XMFLOAT3 MENU_STAGE2_POSITION = XMFLOAT3(0.0f, -40.0f, 0.0f);
+static const XMFLOAT3 MENU_STAGE2_ROTATION = XMFLOAT3(0.0f, 160.0f, 0.0f);
+
+static const RECT MENU_START_HIT_BOX = { 455, 315, 825, 430 };
+static const RECT MENU_STAGE1_HIT_BOX = { 430, 250, 850, 355 };
+static const RECT MENU_STAGE2_HIT_BOX = { 430, 370, 850, 480 };
+
+static bool IsPointInScreenBox(int x, int y, const RECT& rect)
+{
+	return((x >= rect.left) && (x <= rect.right) && (y >= rect.top) && (y <= rect.bottom));
+}
+
+static void UpdateMenuTextMotion(CGameObject *pTextObject, const XMFLOAT3& xmf3BasePosition, float fScale, const XMFLOAT3& xmf3BaseRotation, bool bHovered, float fElapsedTime, float fPhase)
+{
+	XMFLOAT3 xmf3Position = xmf3BasePosition;
+	xmf3Position.y += sinf((fElapsedTime * 2.2f) + fPhase) * 4.0f;
+
+	XMFLOAT3 xmf3Rotation = xmf3BaseRotation;
+	if (bHovered) xmf3Rotation.y += sinf(fElapsedTime * 5.0f) * 8.0f;
+
+	SetMenuTextTransform(pTextObject, xmf3Position, fScale, xmf3Rotation);
+}
+
 static CGameObject *CreateMenuTextObject(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *pd3dCommandList, ID3D12RootSignature *pd3dGraphicsRootSignature, char *pstrFileName, const XMFLOAT3& xmf3Position, float fScale, const XMFLOAT3& xmf3Rotation, const XMFLOAT4& xmf4Color)
 {
 	int nMeshesInHierarchy = 0;
@@ -603,13 +638,13 @@ void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *p
 
 	m_nWorldObjects = (int)ppObjects.size();
 
-	m_pNameText = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Name_Text.bin", XMFLOAT3(0.0f, -40.0f, 0.0f), 300.0f, XMFLOAT3(-90.0f, 170.0f, -8.0f), XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f));
+	m_pNameText = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Name_Text.bin", MENU_NAME_POSITION, MENU_NAME_SCALE, MENU_NAME_ROTATION, XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f));
 	if (m_pNameText) ppObjects.push_back(m_pNameText);
-	m_pStartText = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Start_Text.bin", XMFLOAT3(0.0f, 40.0f, 0.0f), 700.0f, XMFLOAT3(-90.0f, 150.0f, 15.0f), XMFLOAT4(1.f, 0.f, 0.f, 1.0f));
+	m_pStartText = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Start_Text.bin", MENU_START_POSITION, MENU_START_SCALE, MENU_START_ROTATION, XMFLOAT4(1.f, 0.f, 0.f, 1.0f));
 	if (m_pStartText) ppObjects.push_back(m_pStartText);
-	m_pStage1Text = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Stage_1_Text.bin", XMFLOAT3(0.0f, 40.0f, 0.0f), 500.0f, XMFLOAT3(-90.0f, 160.0f, 0.0f), XMFLOAT4(1.f, 1.0f, 0.f, 1.0f));
+	m_pStage1Text = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Stage_1_Text.bin", MENU_STAGE1_POSITION, MENU_STAGE_SCALE, MENU_STAGE1_ROTATION, XMFLOAT4(1.f, 1.0f, 0.f, 1.0f));
 	if (m_pStage1Text) ppObjects.push_back(m_pStage1Text);
-	m_pStage2Text = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Stage_2_Text.bin", XMFLOAT3(0.0f, -40.0f, 0.0f), 500.0f, XMFLOAT3(.0f, 160.0f, 0.0f), XMFLOAT4(0.5f, 0.5f, 0.f, 1.0f));
+	m_pStage2Text = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Stage_2_Text.bin", MENU_STAGE2_POSITION, MENU_STAGE_SCALE, MENU_STAGE2_ROTATION, XMFLOAT4(0.5f, 0.5f, 0.f, 1.0f));
 	if (m_pStage2Text) ppObjects.push_back(m_pStage2Text);
 
 	m_nGameObjects = (int)ppObjects.size();
@@ -633,6 +668,7 @@ void CScene::ReleaseObjects()
 	m_vDoors.clear();
 	m_vEnemies.clear();
 	m_fShotEffectTime = 0.0f;
+	m_fMenuElapsedTime = 0.0f;
 	m_pNameText = NULL;
 	m_pStartText = NULL;
 	m_pStage1Text = NULL;
@@ -720,14 +756,14 @@ void CScene::ReleaseUploadBuffers()
 
 bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
+	m_nMenuCursorX = LOWORD(lParam);
+	m_nMenuCursorY = HIWORD(lParam);
+
 	if (nMessageID == WM_LBUTTONDOWN)
 	{
-		int x = LOWORD(lParam);
-		int y = HIWORD(lParam);
-
 		if (m_nScreenMode == SCENE_SCREEN_TITLE)
 		{
-			if ((x >= 430) && (x <= 850) && (y >= 330) && (y <= 520))
+			if (IsPointInScreenBox(m_nMenuCursorX, m_nMenuCursorY, MENU_START_HIT_BOX))
 			{
 				m_nScreenMode = SCENE_SCREEN_STAGE_SELECT;
 				return(true);
@@ -735,12 +771,12 @@ bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam,
 		}
 		else if (m_nScreenMode == SCENE_SCREEN_STAGE_SELECT)
 		{
-			if ((x >= 410) && (x <= 870) && (y >= 210) && (y <= 390))
+			if (IsPointInScreenBox(m_nMenuCursorX, m_nMenuCursorY, MENU_STAGE1_HIT_BOX))
 			{
 				BeginStage(1);
 				return(true);
 			}
-			if ((x >= 410) && (x <= 870) && (y >= 400) && (y <= 590))
+			if (IsPointInScreenBox(m_nMenuCursorX, m_nMenuCursorY, MENU_STAGE2_HIT_BOX))
 			{
 				BeginStage(2);
 				return(true);
@@ -795,9 +831,24 @@ bool CScene::ProcessInput(UCHAR *pKeysBuffer)
 void CScene::AnimateObjects(float fTimeElapsed)
 {
 	m_fElapsedTime = fTimeElapsed;
+	m_fMenuElapsedTime += fTimeElapsed;
 
 	int nAnimateObjects = (m_nScreenMode == SCENE_SCREEN_PLAYING) ? m_nWorldObjects : m_nGameObjects;
 	for (int i = 0; i < nAnimateObjects; i++) m_ppGameObjects[i]->Animate(fTimeElapsed, NULL);
+
+	if (m_nScreenMode == SCENE_SCREEN_TITLE)
+	{
+		bool bStartHovered = IsPointInScreenBox(m_nMenuCursorX, m_nMenuCursorY, MENU_START_HIT_BOX);
+		UpdateMenuTextMotion(m_pNameText, MENU_NAME_POSITION, MENU_NAME_SCALE, MENU_NAME_ROTATION, false, m_fMenuElapsedTime, 0.0f);
+		UpdateMenuTextMotion(m_pStartText, MENU_START_POSITION, MENU_START_SCALE, MENU_START_ROTATION, bStartHovered, m_fMenuElapsedTime, 0.8f);
+	}
+	else if (m_nScreenMode == SCENE_SCREEN_STAGE_SELECT)
+	{
+		bool bStage1Hovered = IsPointInScreenBox(m_nMenuCursorX, m_nMenuCursorY, MENU_STAGE1_HIT_BOX);
+		bool bStage2Hovered = IsPointInScreenBox(m_nMenuCursorX, m_nMenuCursorY, MENU_STAGE2_HIT_BOX);
+		UpdateMenuTextMotion(m_pStage1Text, MENU_STAGE1_POSITION, MENU_STAGE_SCALE, MENU_STAGE1_ROTATION, bStage1Hovered, m_fMenuElapsedTime, 0.3f);
+		UpdateMenuTextMotion(m_pStage2Text, MENU_STAGE2_POSITION, MENU_STAGE_SCALE, MENU_STAGE2_ROTATION, bStage2Hovered, m_fMenuElapsedTime, 1.1f);
+	}
 
 	if (m_fShotEffectTime > 0.0f)
 	{

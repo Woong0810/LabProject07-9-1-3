@@ -127,6 +127,8 @@ public:
 	CGameObject					*m_pStage2Text = NULL;
 	SCENE_SCREEN_MODE			m_nScreenMode = SCENE_SCREEN_TITLE;
 	int							m_nSelectedStage = 1;
+	int							m_nMenuCursorX = -1;
+	int							m_nMenuCursorY = -1;
 
 	std::vector<DOOR_OBJECT>	m_vDoors;
 	std::vector<ENEMY_OBJECT>	m_vEnemies;
@@ -141,4 +143,5 @@ public:
 	LIGHTS						*m_pcbMappedLights = NULL;
 
 	float						m_fElapsedTime = 0.0f;
+	float						m_fMenuElapsedTime = 0.0f;
 };
