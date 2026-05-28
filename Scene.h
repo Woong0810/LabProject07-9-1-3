@@ -115,6 +115,9 @@ public:
 	SCENE_SCREEN_MODE GetScreenMode() const { return(m_nScreenMode); }
 	void BeginStage(int nStage);
 	void DamagePlayer(int nDamage, const XMFLOAT3& xmf3HitDirection);
+	void HealPlayer();
+	void KillAllEnemiesInStage();
+	bool AreAllEnemiesKilledInStage() const;
 
 	void ReleaseUploadBuffers();
 	void ResolvePlayerCollision(CPlayer *pPlayer, const XMFLOAT3& xmf3OldPosition, bool bFreeFlyMode);
@@ -145,6 +148,7 @@ public:
 	float						m_fHitEffectTime = 0.0f;
 	int							m_nPlayerHealth = 100;
 	bool						m_bGameOver = false;
+	bool						m_bDebugNoDamage = false;
 
 	LIGHT						*m_pLights = NULL;
 	int							m_nLights = 0;

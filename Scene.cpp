@@ -105,9 +105,9 @@ static const float PLAYER_SHOT_EFFECT_DURATION = 0.05f;
 
 static const char g_pStage1Floor0Map[] =
 	"#######################"
-	"#S....#.....D.........#"
+	"#.....#.....D.........#"
 	"#.....#.....#.........#"
-	"#.....D.....#.........#"
+	"#..S..D.....#.........#"
 	"#.....#.....#####D#####"
 	"###D#########.........#"
 	"#.........#...........#"
@@ -614,6 +614,7 @@ void CScene::BeginStage(int nStage)
 void CScene::DamagePlayer(int nDamage, const XMFLOAT3& xmf3HitDirection)
 {
 	if ((m_nScreenMode != SCENE_SCREEN_PLAYING) || m_bGameOver) return;
+	if (m_bDebugNoDamage) return;
 
 	m_fHitEffectTime = PLAYER_HIT_EFFECT_DURATION;
 
@@ -637,6 +638,51 @@ void CScene::DamagePlayer(int nDamage, const XMFLOAT3& xmf3HitDirection)
 	}
 }
 
+void CScene::HealPlayer()
+{
+	if (m_nScreenMode != SCENE_SCREEN_PLAYING) return;
+
+	m_nPlayerHealth = PLAYER_MAX_HEALTH;
+	m_fHitEffectTime = 0.0f;
+}
+
+bool CScene::AreAllEnemiesKilledInStage() const
+{
+	int nStageIndex = GetStageIndexFromStageNumber(m_nSelectedStage);
+	bool bHasEnemyInStage = false;
+
+	for (size_t i = 0; i < m_vEnemies.size(); i++)
+	{
+		const ENEMY_OBJECT& enemy = m_vEnemies[i];
+		if (enemy.m_nStage != nStageIndex) continue;
+
+		bHasEnemyInStage = true;
+		if (enemy.m_bAlive) return(false);
+	}
+	return(bHasEnemyInStage);
+}
+
+void CScene::KillAllEnemiesInStage()
+{
+	if (m_nScreenMode != SCENE_SCREEN_PLAYING) return;
+
+	int nStageIndex = GetStageIndexFromStageNumber(m_nSelectedStage);
+	for (size_t i = 0; i < m_vEnemies.size(); i++)
+	{
+		ENEMY_OBJECT& enemy = m_vEnemies[i];
+		if ((enemy.m_nStage != nStageIndex) || !enemy.m_bAlive || !enemy.m_pObject) continue;
+
+		enemy.m_bAlive = false;
+		enemy.m_nHealth = 0;
+		SetObjectMaterialColorRecursive(enemy.m_pObject, XMFLOAT4(0.08f, 0.08f, 0.08f, 1.0f));
+
+		XMFLOAT3 xmf3EnemyPosition = enemy.m_pObject->GetPosition();
+		xmf3EnemyPosition.y -= 1000.0f;
+		enemy.m_pObject->SetPosition(xmf3EnemyPosition);
+	}
+	m_bGameOver = true;
+}
+
 void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *pd3dCommandList)
 {
 	m_pd3dGraphicsRootSignature = CreateGraphicsRootSignature(pd3dDevice);
@@ -649,6 +695,7 @@ void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *p
 	m_vEnemies.clear();
 
 	std::vector<CGameObject*> ppObjects;
+	const int pnStageEnemyCounts[] = { 13, 12 };
 	const int ppnStageEnemyCells[][13][3] =
 	{
 		{
@@ -657,9 +704,9 @@ void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *p
 			{ 4, 4, 1 }, { 3, 9, 1 }, { 11, 11, 1 }
 		},
 		{
-			{ 10, 2, 0 }, { 17, 3, 0 }, { 4, 7, 0 }, { 12, 9, 0 }, { 18, 13, 0 },
-			{ 5, 14, 0 }, { 5, 3, 1 }, { 11, 4, 1 }, { 17, 6, 1 }, { 4, 10, 1 },
-			{ 10, 10, 1 }, { 16, 12, 1 }, { 19, 15, 1 }
+			{ 4, 1, 0 }, { 14, 1, 0 }, { 5, 4, 0 }, { 15, 5, 0 }, { 6, 8, 0 },
+			{ 13, 11, 0 }, { 17, 2, 1 }, { 4, 5, 1 }, { 11, 5, 1 }, { 15, 8, 1 },
+			{ 6, 11, 1 }, { 19, 15, 1 }, { 0, 0, 0 }
 		}
 	};
 
@@ -728,7 +775,7 @@ void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *p
 			}
 		}
 
-		for (int i = 0; i < _countof(ppnStageEnemyCells[stage]); i++)
+		for (int i = 0; i < pnStageEnemyCounts[stage]; i++)
 		{
 			const int *pnEnemyCell = ppnStageEnemyCells[stage][i];
 			XMFLOAT3 xmf3EnemyCellPosition = GetMazeCellPosition(pnEnemyCell[0], pnEnemyCell[1], map.m_nWidth, map.m_nHeight, 0.0f);
@@ -931,10 +978,28 @@ bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 	}
 	if (m_nScreenMode != SCENE_SCREEN_PLAYING) return(false);
 
-	if ((nMessageID == WM_KEYDOWN) && (wParam == VK_SPACE) && ((lParam & 0x40000000) == 0))
+	if ((nMessageID == WM_KEYDOWN) && ((lParam & 0x40000000) == 0))
 	{
-		FireRayShot();
-		return(true);
+		if (wParam == VK_SPACE)
+		{
+			FireRayShot();
+			return(true);
+		}
+		if (wParam == 'K')
+		{
+			KillAllEnemiesInStage();
+			return(true);
+		}
+		if (wParam == 'H')
+		{
+			HealPlayer();
+			return(true);
+		}
+		if (wParam == VK_F5)
+		{
+			m_bDebugNoDamage = !m_bDebugNoDamage;
+			return(false);
+		}
 	}
 	return(false);
 }
@@ -1140,6 +1205,7 @@ bool CScene::FireRayShot()
 		XMFLOAT3 xmf3EnemyPosition = enemy.m_pObject->GetPosition();
 		xmf3EnemyPosition.y -= 1000.0f;
 		enemy.m_pObject->SetPosition(xmf3EnemyPosition);
+		if (AreAllEnemiesKilledInStage()) m_bGameOver = true;
 	}
 	else
 	{
