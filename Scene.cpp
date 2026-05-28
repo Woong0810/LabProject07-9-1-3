@@ -537,6 +537,9 @@ void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *p
 	}
 	const int pnEnemyCells[][3] =
 	{
+		{ 16, 2, 0 },
+		{ 7, 7, 0 },
+		{ 18, 13, 1 },
 		{ 19, 2, 0 },
 		{ 18, 6, 0 },
 		{ 3, 14, 0 },
