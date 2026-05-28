@@ -321,18 +321,18 @@ static CGameObject *CreateArmedCharacterObject(ID3D12Device *pd3dDevice, ID3D12G
 	return(pCharacterObject);
 }
 
-static void SetMenuTextTransform(CGameObject *pTextObject, const XMFLOAT3& xmf3Position, float fScale)
+static void SetMenuTextTransform(CGameObject *pTextObject, const XMFLOAT3& xmf3Position, float fScale, const XMFLOAT3& xmf3Rotation)
 {
 	if (!pTextObject) return;
 
 	XMMATRIX xmmtxText = XMMatrixScaling(fScale, fScale, fScale) *
-		XMMatrixRotationX(XMConvertToRadians(-90.0f)) *
+		XMMatrixRotationRollPitchYaw(XMConvertToRadians(xmf3Rotation.x), XMConvertToRadians(xmf3Rotation.y), XMConvertToRadians(xmf3Rotation.z)) *
 		XMMatrixTranslation(xmf3Position.x, xmf3Position.y, xmf3Position.z);
 	XMStoreFloat4x4(&pTextObject->m_xmf4x4Transform, xmmtxText);
 	pTextObject->UpdateTransform(NULL);
 }
 
-static CGameObject *CreateMenuTextObject(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *pd3dCommandList, ID3D12RootSignature *pd3dGraphicsRootSignature, char *pstrFileName, const XMFLOAT3& xmf3Position, float fScale, const XMFLOAT4& xmf4Color)
+static CGameObject *CreateMenuTextObject(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *pd3dCommandList, ID3D12RootSignature *pd3dGraphicsRootSignature, char *pstrFileName, const XMFLOAT3& xmf3Position, float fScale, const XMFLOAT3& xmf3Rotation, const XMFLOAT4& xmf4Color)
 {
 	int nMeshesInHierarchy = 0;
 	int pnMaterialsInHierarchy[64] = { 0 };
@@ -340,7 +340,7 @@ static CGameObject *CreateMenuTextObject(ID3D12Device *pd3dDevice, ID3D12Graphic
 	if (!pTextObject) return(NULL);
 
 	SetObjectMaterialColorRecursive(pTextObject, xmf4Color);
-	SetMenuTextTransform(pTextObject, xmf3Position, fScale);
+	SetMenuTextTransform(pTextObject, xmf3Position, fScale, xmf3Rotation);
 	pTextObject->CreateShaderVariables(pd3dDevice, pd3dCommandList, nMeshesInHierarchy, pnMaterialsInHierarchy);
 	return(pTextObject);
 }
@@ -603,13 +603,13 @@ void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *p
 
 	m_nWorldObjects = (int)ppObjects.size();
 
-	m_pNameText = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Name_Text.bin", XMFLOAT3(-80.0f, 55.0f, 0.0f), 360.0f, XMFLOAT4(0.10f, 0.76f, 1.0f, 1.0f));
+	m_pNameText = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Name_Text.bin", XMFLOAT3(-82.0f, 52.0f, 0.0f), 420.0f, XMFLOAT3(-90.0f, 180.0f, 0.0f), XMFLOAT4(0.10f, 0.76f, 1.0f, 1.0f));
 	if (m_pNameText) ppObjects.push_back(m_pNameText);
-	m_pStartText = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Start_Text.bin", XMFLOAT3(-66.0f, -35.0f, 0.0f), 360.0f, XMFLOAT4(1.0f, 0.92f, 0.18f, 1.0f));
+	m_pStartText = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Start_Text.bin", XMFLOAT3(-82.0f, -42.0f, 0.0f), 420.0f, XMFLOAT3(-90.0f, 180.0f, 0.0f), XMFLOAT4(1.0f, 0.92f, 0.18f, 1.0f));
 	if (m_pStartText) ppObjects.push_back(m_pStartText);
-	m_pStage1Text = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Stage_1_Text.bin", XMFLOAT3(-135.0f, 0.0f, 0.0f), 285.0f, XMFLOAT4(0.35f, 1.0f, 0.42f, 1.0f));
+	m_pStage1Text = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Stage_1_Text.bin", XMFLOAT3(-98.0f, 52.0f, 0.0f), 330.0f, XMFLOAT3(-90.0f, 180.0f, 0.0f), XMFLOAT4(0.35f, 1.0f, 0.42f, 1.0f));
 	if (m_pStage1Text) ppObjects.push_back(m_pStage1Text);
-	m_pStage2Text = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Stage_2_Text.bin", XMFLOAT3(25.0f, 0.0f, 0.0f), 285.0f, XMFLOAT4(1.0f, 0.48f, 0.28f, 1.0f));
+	m_pStage2Text = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Stage_2_Text.bin", XMFLOAT3(-98.0f, -42.0f, 0.0f), 330.0f, XMFLOAT3(-90.0f, 0.0f, 0.0f), XMFLOAT4(1.0f, 0.48f, 0.28f, 1.0f));
 	if (m_pStage2Text) ppObjects.push_back(m_pStage2Text);
 
 	m_nGameObjects = (int)ppObjects.size();
@@ -735,12 +735,12 @@ bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam,
 		}
 		else if (m_nScreenMode == SCENE_SCREEN_STAGE_SELECT)
 		{
-			if ((x >= 170) && (x <= 610) && (y >= 260) && (y <= 500))
+			if ((x >= 410) && (x <= 870) && (y >= 210) && (y <= 390))
 			{
 				BeginStage(1);
 				return(true);
 			}
-			if ((x >= 670) && (x <= 1110) && (y >= 260) && (y <= 500))
+			if ((x >= 410) && (x <= 870) && (y >= 400) && (y <= 590))
 			{
 				BeginStage(2);
 				return(true);
