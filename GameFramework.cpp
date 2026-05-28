@@ -507,6 +507,27 @@ void CGameFramework::RenderCrosshair(D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescri
 	m_pd3dCommandList->ClearRenderTargetView(d3dRtvCPUDescriptorHandle, pfCrosshairColor, _countof(pd3dCrosshairRects), pd3dCrosshairRects);
 }
 
+void CGameFramework::RenderShootEffect(D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle)
+{
+	if (!m_pScene || !m_pScene->IsShotEffectVisible()) return;
+
+	int xCenter = m_nWndClientWidth / 2;
+	int yCenter = m_nWndClientHeight / 2;
+	const int nFlashHalfSize = 13;
+	const int nFlashThickness = 5;
+
+	D3D12_RECT pd3dFlashRects[5] =
+	{
+		{ xCenter - nFlashHalfSize, yCenter - nFlashThickness, xCenter + nFlashHalfSize, yCenter + nFlashThickness },
+		{ xCenter - nFlashThickness, yCenter - nFlashHalfSize, xCenter + nFlashThickness, yCenter + nFlashHalfSize },
+		{ xCenter - 3, yCenter - 3, xCenter + 4, yCenter + 4 },
+		{ xCenter - nFlashHalfSize - 9, yCenter - 1, xCenter - nFlashHalfSize - 2, yCenter + 2 },
+		{ xCenter + nFlashHalfSize + 2, yCenter - 1, xCenter + nFlashHalfSize + 9, yCenter + 2 }
+	};
+	float pfFlashColor[4] = { 1.0f, 0.92f, 0.25f, 1.0f };
+	m_pd3dCommandList->ClearRenderTargetView(d3dRtvCPUDescriptorHandle, pfFlashColor, _countof(pd3dFlashRects), pd3dFlashRects);
+}
+
 void CGameFramework::WaitForGpuComplete()
 {
 	const UINT64 nFenceValue = ++m_nFenceValues[m_nSwapChainBufferIndex];
@@ -575,6 +596,7 @@ void CGameFramework::FrameAdvance()
 	if (m_pPlayer) m_pPlayer->Render(m_pd3dCommandList, m_pCamera);
 
 	RenderCrosshair(d3dRtvCPUDescriptorHandle);
+	RenderShootEffect(d3dRtvCPUDescriptorHandle);
 
 	d3dResourceBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	d3dResourceBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;

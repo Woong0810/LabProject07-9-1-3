@@ -97,6 +97,7 @@ public:
     void AnimateObjects(float fTimeElapsed);
     void Render(ID3D12GraphicsCommandList *pd3dCommandList, CCamera *pCamera=NULL);
 	bool FireRayShot();
+	bool IsShotEffectVisible() const { return(m_fShotEffectTime > 0.0f); }
 
 	void ReleaseUploadBuffers();
 	void ResolvePlayerCollision(CPlayer *pPlayer, const XMFLOAT3& xmf3OldPosition, bool bFreeFlyMode);
@@ -112,6 +113,8 @@ public:
 
 	std::vector<DOOR_OBJECT>	m_vDoors;
 	std::vector<ENEMY_OBJECT>	m_vEnemies;
+	CGameObject					*m_pShotTracer = NULL;
+	float						m_fShotEffectTime = 0.0f;
 
 	LIGHT						*m_pLights = NULL;
 	int							m_nLights = 0;

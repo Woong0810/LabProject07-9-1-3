@@ -95,6 +95,8 @@ static const float ENEMY_PATROL_REACH_DISTANCE = 4.0f;
 static const float PLAYER_RAY_SHOT_RANGE = 500.0f;
 static const float PLAYER_RAY_SHOT_RADIUS = 10.0f;
 static const float PLAYER_RAY_SHOT_HEIGHT = 18.0f;
+static const float PLAYER_SHOT_EFFECT_DURATION = 0.05f;
+static const float PLAYER_SHOT_TRACER_THICKNESS = 1.2f;
 
 static const char g_pStage1Floor0Map[] =
 	"#######################"
@@ -403,17 +405,56 @@ static bool IsRayBlockedBeforeDistance(const XMFLOAT3& xmf3RayOrigin, const XMFL
 	return(false);
 }
 
-static XMFLOAT3 GetPlayerShotDirection(CPlayer *pPlayer)
+static float GetRayBlockedDistance(const XMFLOAT3& xmf3RayOrigin, const XMFLOAT3& xmf3RayDirection, float fMaxDistance, const MAZE_MAP_DESC& map, const std::vector<DOOR_OBJECT>& doors)
 {
-	XMFLOAT3 xmf3ShotDirection = pPlayer->GetLookVector();
-	CCamera *pCamera = pPlayer->GetCamera();
-	if (pCamera && (pCamera->GetMode() == FIRST_PERSON_CAMERA) && (pPlayer->GetPitch() != 0.0f))
+	int nSteps = (int)(fMaxDistance / (MAZE_CELL_SIZE * 0.25f));
+	if (nSteps < 2) return(fMaxDistance);
+
+	for (int i = 1; i <= nSteps; i++)
 	{
-		XMFLOAT3 xmf3Right = pPlayer->GetRightVector();
-		XMMATRIX xmmtxPitch = XMMatrixRotationAxis(XMLoadFloat3(&xmf3Right), XMConvertToRadians(pPlayer->GetPitch()));
-		xmf3ShotDirection = Vector3::TransformNormal(xmf3ShotDirection, xmmtxPitch);
+		float fDistance = fMaxDistance * ((float)i / (float)nSteps);
+		float x = xmf3RayOrigin.x + (xmf3RayDirection.x * fDistance);
+		float y = xmf3RayOrigin.y + (xmf3RayDirection.y * fDistance);
+		float z = xmf3RayOrigin.z + (xmf3RayDirection.z * fDistance);
+		if (IsBlockedAtWorld(x, z, y, map, doors)) return(fDistance);
 	}
-	return(Vector3::Normalize(xmf3ShotDirection));
+	return(fMaxDistance);
+}
+
+static void HideShotTracer(CGameObject *pShotTracer)
+{
+	if (pShotTracer) pShotTracer->SetPosition(XMFLOAT3(0.0f, -1000.0f, 0.0f));
+}
+
+static void SetShotTracerTransform(CGameObject *pShotTracer, const XMFLOAT3& xmf3RayOrigin, const XMFLOAT3& xmf3RayDirection, float fLength)
+{
+	if (!pShotTracer) return;
+
+	if (fLength < 1.0f) fLength = 1.0f;
+
+	XMFLOAT3 xmf3Direction = xmf3RayDirection;
+	XMFLOAT3 xmf3Look = Vector3::Normalize(xmf3Direction);
+	XMFLOAT3 xmf3UpHint = (fabsf(xmf3Look.y) > 0.95f) ? XMFLOAT3(1.0f, 0.0f, 0.0f) : XMFLOAT3(0.0f, 1.0f, 0.0f);
+	XMFLOAT3 xmf3Right = Vector3::CrossProduct(xmf3UpHint, xmf3Look, true);
+	XMFLOAT3 xmf3Up = Vector3::CrossProduct(xmf3Look, xmf3Right, true);
+	XMFLOAT3 xmf3Center = XMFLOAT3(
+		xmf3RayOrigin.x + (xmf3Look.x * fLength * 0.5f),
+		xmf3RayOrigin.y + (xmf3Look.y * fLength * 0.5f),
+		xmf3RayOrigin.z + (xmf3Look.z * fLength * 0.5f));
+
+	pShotTracer->m_xmf4x4Transform._11 = xmf3Right.x * PLAYER_SHOT_TRACER_THICKNESS;
+	pShotTracer->m_xmf4x4Transform._12 = xmf3Right.y * PLAYER_SHOT_TRACER_THICKNESS;
+	pShotTracer->m_xmf4x4Transform._13 = xmf3Right.z * PLAYER_SHOT_TRACER_THICKNESS;
+	pShotTracer->m_xmf4x4Transform._21 = xmf3Up.x * PLAYER_SHOT_TRACER_THICKNESS;
+	pShotTracer->m_xmf4x4Transform._22 = xmf3Up.y * PLAYER_SHOT_TRACER_THICKNESS;
+	pShotTracer->m_xmf4x4Transform._23 = xmf3Up.z * PLAYER_SHOT_TRACER_THICKNESS;
+	pShotTracer->m_xmf4x4Transform._31 = xmf3Look.x * fLength;
+	pShotTracer->m_xmf4x4Transform._32 = xmf3Look.y * fLength;
+	pShotTracer->m_xmf4x4Transform._33 = xmf3Look.z * fLength;
+	pShotTracer->m_xmf4x4Transform._41 = xmf3Center.x;
+	pShotTracer->m_xmf4x4Transform._42 = xmf3Center.y;
+	pShotTracer->m_xmf4x4Transform._43 = xmf3Center.z;
+	pShotTracer->UpdateTransform(NULL);
 }
 
 static bool CanEnemySeePlayer(const ENEMY_OBJECT& enemy, const XMFLOAT3& xmf3EnemyPosition, const XMFLOAT3& xmf3PlayerPosition, const MAZE_MAP_DESC& map, const std::vector<DOOR_OBJECT>& doors)
@@ -567,6 +608,9 @@ void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *p
 		}
 	}
 
+	m_pShotTracer = CreateColoredBoxObject(pd3dDevice, pd3dCommandList, XMFLOAT3(0.0f, -1000.0f, 0.0f), XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT4(1.0f, 0.95f, 0.25f, 1.0f));
+	if (m_pShotTracer) ppObjects.push_back(m_pShotTracer);
+
 	m_nGameObjects = (int)ppObjects.size();
 	m_ppGameObjects = new CGameObject*[m_nGameObjects];
 	for (int i = 0; i < m_nGameObjects; i++) m_ppGameObjects[i] = ppObjects[i];
@@ -587,6 +631,8 @@ void CScene::ReleaseObjects()
 	}
 	m_vDoors.clear();
 	m_vEnemies.clear();
+	m_pShotTracer = NULL;
+	m_fShotEffectTime = 0.0f;
 
 	if (m_pLights) delete[] m_pLights;
 }
@@ -694,6 +740,16 @@ void CScene::AnimateObjects(float fTimeElapsed)
 
 	for (int i = 0; i < m_nGameObjects; i++) m_ppGameObjects[i]->Animate(fTimeElapsed, NULL);
 
+	if (m_fShotEffectTime > 0.0f)
+	{
+		m_fShotEffectTime -= fTimeElapsed;
+		if (m_fShotEffectTime <= 0.0f)
+		{
+			m_fShotEffectTime = 0.0f;
+			HideShotTracer(m_pShotTracer);
+		}
+	}
+
 	const MAZE_MAP_DESC& map = g_pMazeMaps[0];
 	XMFLOAT3 xmf3PlayerPosition = (m_pPlayer) ? m_pPlayer->GetPosition() : XMFLOAT3(0.0f, 0.0f, 0.0f);
 
@@ -791,15 +847,17 @@ void CScene::ResolvePlayerCollision(CPlayer *pPlayer, const XMFLOAT3& xmf3OldPos
 
 bool CScene::FireRayShot()
 {
-	if (!m_pPlayer) return(false);
+	if (!m_pPlayer || !m_pPlayer->GetCamera()) return(false);
 
-	XMFLOAT3 xmf3RayOrigin = m_pPlayer->GetPosition();
-	xmf3RayOrigin.y += PLAYER_RAY_SHOT_HEIGHT;
-	XMFLOAT3 xmf3RayDirection = GetPlayerShotDirection(m_pPlayer);
+	CCamera *pCamera = m_pPlayer->GetCamera();
+	XMFLOAT3 xmf3RayOrigin = pCamera->GetPosition();
+	XMFLOAT3 xmf3RayDirection = pCamera->GetLookVector();
+	xmf3RayDirection = Vector3::Normalize(xmf3RayDirection);
 
 	const MAZE_MAP_DESC& map = g_pMazeMaps[0];
 	int nBestEnemy = -1;
 	float fBestHitDistance = PLAYER_RAY_SHOT_RANGE;
+	float fVisibleDistance = GetRayBlockedDistance(xmf3RayOrigin, xmf3RayDirection, PLAYER_RAY_SHOT_RANGE, map, m_vDoors);
 
 	for (size_t i = 0; i < m_vEnemies.size(); i++)
 	{
@@ -816,6 +874,10 @@ bool CScene::FireRayShot()
 		fBestHitDistance = fHitDistance;
 		nBestEnemy = (int)i;
 	}
+
+	float fTracerDistance = (nBestEnemy >= 0) ? fBestHitDistance : fVisibleDistance;
+	SetShotTracerTransform(m_pShotTracer, xmf3RayOrigin, xmf3RayDirection, fTracerDistance);
+	m_fShotEffectTime = PLAYER_SHOT_EFFECT_DURATION;
 
 	if (nBestEnemy < 0) return(false);
 

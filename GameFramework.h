@@ -34,6 +34,7 @@ public:
     void AnimateObjects();
     void FrameAdvance();
 	void RenderCrosshair(D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle);
+	void RenderShootEffect(D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle);
 
 	void WaitForGpuComplete();
 	void MoveToNextFrame();
