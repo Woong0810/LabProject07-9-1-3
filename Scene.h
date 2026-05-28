@@ -42,6 +42,7 @@ struct LIGHTS
 struct DOOR_OBJECT
 {
 	CGameObject				*m_pObject = NULL;
+	int						m_nStage = 0;
 	int						m_nCellX = 0;
 	int						m_nCellZ = 0;
 	int						m_nFloor = 0;
@@ -64,6 +65,7 @@ struct ENEMY_OBJECT
 	float					m_fMoveSpeed = 18.0f;
 	float					m_fFireCooldown = 0.0f;
 	ENEMY_AI_STATE			m_nState = ENEMY_AI_PATROL;
+	int						m_nStage = 0;
 	int						m_nFloor = 0;
 	bool					m_bAlive = true;
 	int						m_nHealth = 1;
@@ -126,6 +128,8 @@ public:
 	CGameObject					**m_ppGameObjects = NULL;
 	int							m_nGameObjects = 0;
 	int							m_nWorldObjects = 0;
+	int							m_pnStageWorldStart[2] = { 0, 0 };
+	int							m_pnStageWorldCount[2] = { 0, 0 };
 	CGameObject					*m_pNameText = NULL;
 	CGameObject					*m_pStartText = NULL;
 	CGameObject					*m_pStage1Text = NULL;

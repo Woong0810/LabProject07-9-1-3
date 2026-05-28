@@ -141,10 +141,57 @@ static const char g_pStage1Floor1Map[] =
 	"#.....................#"
 	"#######################";
 
+static const char g_pStage2Floor0Map[] =
+	"#######################"
+	"#S......D.....#.......#"
+	"#.#######.....#.#####.#"
+	"#.#.....#.....#.....#.#"
+	"#.#.....###D#####...#.#"
+	"#.#.............#...D.#"
+	"#.#####D#####...#...###"
+	"#.....#.....#...#.....#"
+	"###...#.....D...#####.#"
+	"#.....#.....#.......#.#"
+	"#.#####D#########...#.#"
+	"#.#.............#...#.#"
+	"#.#.....#####...#...#.#"
+	"#.D.....#...#...D...#.#"
+	"#.#####.#...###^#####.#"
+	"#.......#.............#"
+	"#######################";
+
+static const char g_pStage2Floor1Map[] =
+	"#######################"
+	"#.......#.............#"
+	"#.#####.#.###########.#"
+	"#.#...#.#.....D.....#.#"
+	"#.#...#.#.....#.....#.#"
+	"#.#...D.#######.....#.#"
+	"#.#...........#.....#.#"
+	"#.#########...###D###.#"
+	"#.........#.....#.....#"
+	"#####D#####.....#.....#"
+	"#.........D.....#.....#"
+	"#.........###########.#"
+	"#.....#.............#.#"
+	"#.....#####D#####...#.#"
+	"#...............#.....#"
+	"#...............D.....#"
+	"#######################";
+
 static const MAZE_MAP_DESC g_pMazeMaps[] =
 {
-	{ { g_pStage1Floor0Map, g_pStage1Floor1Map }, MAZE_WIDTH, MAZE_HEIGHT, XMFLOAT4(0.78f, 0.78f, 0.76f, 1.0f), XMFLOAT4(0.78f, 0.78f, 0.76f, 1.0f), XMFLOAT4(0.05f, 0.18f, 0.82f, 1.0f), XMFLOAT4(0.95f, 0.78f, 0.08f, 1.0f), XMFLOAT4(0.00f, 0.88f, 0.82f, 1.0f) }
+	{ { g_pStage1Floor0Map, g_pStage1Floor1Map }, MAZE_WIDTH, MAZE_HEIGHT, XMFLOAT4(0.78f, 0.78f, 0.76f, 1.0f), XMFLOAT4(0.78f, 0.78f, 0.76f, 1.0f), XMFLOAT4(0.05f, 0.18f, 0.82f, 1.0f), XMFLOAT4(0.95f, 0.78f, 0.08f, 1.0f), XMFLOAT4(0.00f, 0.88f, 0.82f, 1.0f) },
+	{ { g_pStage2Floor0Map, g_pStage2Floor1Map }, MAZE_WIDTH, MAZE_HEIGHT, XMFLOAT4(0.62f, 0.66f, 0.60f, 1.0f), XMFLOAT4(0.55f, 0.62f, 0.64f, 1.0f), XMFLOAT4(0.42f, 0.12f, 0.38f, 1.0f), XMFLOAT4(0.96f, 0.62f, 0.10f, 1.0f), XMFLOAT4(0.10f, 0.76f, 0.72f, 1.0f) }
 };
+
+static int GetStageIndexFromStageNumber(int nStage)
+{
+	int nStageIndex = nStage - 1;
+	if (nStageIndex < 0) nStageIndex = 0;
+	if (nStageIndex >= _countof(g_pMazeMaps)) nStageIndex = _countof(g_pMazeMaps) - 1;
+	return(nStageIndex);
+}
 
 static XMFLOAT3 GetMazeCellPosition(int x, int z, int width, int height, float y)
 {
@@ -202,11 +249,11 @@ static bool IsHorizontalDoor(const MAZE_MAP_DESC& map, int floor, int x, int z)
 	return(bLeftRightWall || !bFrontBackWall);
 }
 
-static bool IsDoorOpenAtCell(const std::vector<DOOR_OBJECT>& doors, int floor, int x, int z)
+static bool IsDoorOpenAtCell(const std::vector<DOOR_OBJECT>& doors, int stage, int floor, int x, int z)
 {
 	for (size_t i = 0; i < doors.size(); i++)
 	{
-		if ((doors[i].m_nFloor == floor) && (doors[i].m_nCellX == x) && (doors[i].m_nCellZ == z))
+		if ((doors[i].m_nStage == stage) && (doors[i].m_nFloor == floor) && (doors[i].m_nCellX == x) && (doors[i].m_nCellZ == z))
 		{
 			return(doors[i].m_fOpenAmount > 0.78f);
 		}
@@ -214,7 +261,7 @@ static bool IsDoorOpenAtCell(const std::vector<DOOR_OBJECT>& doors, int floor, i
 	return(false);
 }
 
-static bool IsBlockedAtWorld(float x, float z, float y, const MAZE_MAP_DESC& map, const std::vector<DOOR_OBJECT>& doors)
+static bool IsBlockedAtWorld(float x, float z, float y, const MAZE_MAP_DESC& map, const std::vector<DOOR_OBJECT>& doors, int stage)
 {
 	int nFloor = GetMazeFloorIndexFromWorldY(y);
 	int nCellX = WorldToMazeCellX(x, map);
@@ -227,7 +274,7 @@ static bool IsBlockedAtWorld(float x, float z, float y, const MAZE_MAP_DESC& map
 	char tile = GetMazeTileAtCell(map, nFloor, nCellX, nCellZ);
 	if ((nFloor == 1) && !HasSecondFloorTile(tile)) return(true);
 	if (IsBlockingTile(tile)) return(true);
-	if ((tile == 'D') && !IsDoorOpenAtCell(doors, nFloor, nCellX, nCellZ)) return(true);
+	if ((tile == 'D') && !IsDoorOpenAtCell(doors, stage, nFloor, nCellX, nCellZ)) return(true);
 	return(false);
 }
 
@@ -253,6 +300,23 @@ static float GetMazeFloorHeight(float x, float z, float y, const MAZE_MAP_DESC& 
 	if ((nFloor == 1) && HasSecondFloorTile(GetMazeTileAtCell(map, 1, nCellX, nCellZ))) return(MAZE_SECOND_FLOOR_HEIGHT);
 
 	return(0.0f);
+}
+
+static XMFLOAT3 FindMazeSpawnPosition(const MAZE_MAP_DESC& map)
+{
+	for (int z = 0; z < map.m_nHeight; z++)
+	{
+		for (int x = 0; x < map.m_nWidth; x++)
+		{
+			if (GetMazeTileAtCell(map, 0, x, z) == 'S')
+			{
+				XMFLOAT3 xmf3SpawnPosition = GetMazeCellPosition(x, z, map.m_nWidth, map.m_nHeight, 0.0f);
+				xmf3SpawnPosition.y = PLAYER_HEIGHT_OFFSET;
+				return(xmf3SpawnPosition);
+			}
+		}
+	}
+	return(XMFLOAT3(-200.0f, PLAYER_HEIGHT_OFFSET, -140.0f));
 }
 static CGameObject *CreateColoredBoxObject(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *pd3dCommandList, const XMFLOAT3& xmf3Position, const XMFLOAT3& xmf3Scale, const XMFLOAT4& xmf4Color)
 {
@@ -408,15 +472,15 @@ static void SetObjectLookDirectionXZ(CGameObject *pObject, const XMFLOAT3& xmf3P
 	pObject->UpdateTransform(NULL);
 }
 
-static bool IsEnemyBlockedAtWorld(float x, float z, float y, const MAZE_MAP_DESC& map, const std::vector<DOOR_OBJECT>& doors)
+static bool IsEnemyBlockedAtWorld(float x, float z, float y, const MAZE_MAP_DESC& map, const std::vector<DOOR_OBJECT>& doors, int stage)
 {
-	return(IsBlockedAtWorld(x - ENEMY_RADIUS, z - ENEMY_RADIUS, y, map, doors) ||
-		IsBlockedAtWorld(x + ENEMY_RADIUS, z - ENEMY_RADIUS, y, map, doors) ||
-		IsBlockedAtWorld(x - ENEMY_RADIUS, z + ENEMY_RADIUS, y, map, doors) ||
-		IsBlockedAtWorld(x + ENEMY_RADIUS, z + ENEMY_RADIUS, y, map, doors));
+	return(IsBlockedAtWorld(x - ENEMY_RADIUS, z - ENEMY_RADIUS, y, map, doors, stage) ||
+		IsBlockedAtWorld(x + ENEMY_RADIUS, z - ENEMY_RADIUS, y, map, doors, stage) ||
+		IsBlockedAtWorld(x - ENEMY_RADIUS, z + ENEMY_RADIUS, y, map, doors, stage) ||
+		IsBlockedAtWorld(x + ENEMY_RADIUS, z + ENEMY_RADIUS, y, map, doors, stage));
 }
 
-static bool HasLineOfSightToPlayer(const XMFLOAT3& xmf3EnemyPosition, const XMFLOAT3& xmf3PlayerPosition, const MAZE_MAP_DESC& map, const std::vector<DOOR_OBJECT>& doors)
+static bool HasLineOfSightToPlayer(const XMFLOAT3& xmf3EnemyPosition, const XMFLOAT3& xmf3PlayerPosition, const MAZE_MAP_DESC& map, const std::vector<DOOR_OBJECT>& doors, int stage)
 {
 	float fDistance = DistanceXZ(xmf3EnemyPosition, xmf3PlayerPosition);
 	int nSteps = (int)(fDistance / (MAZE_CELL_SIZE * 0.35f));
@@ -427,7 +491,7 @@ static bool HasLineOfSightToPlayer(const XMFLOAT3& xmf3EnemyPosition, const XMFL
 		float t = (float)i / (float)nSteps;
 		float x = xmf3EnemyPosition.x + ((xmf3PlayerPosition.x - xmf3EnemyPosition.x) * t);
 		float z = xmf3EnemyPosition.z + ((xmf3PlayerPosition.z - xmf3EnemyPosition.z) * t);
-		if (IsBlockedAtWorld(x, z, xmf3EnemyPosition.y, map, doors)) return(false);
+		if (IsBlockedAtWorld(x, z, xmf3EnemyPosition.y, map, doors, stage)) return(false);
 	}
 	return(true);
 }
@@ -453,7 +517,7 @@ static bool RayIntersectsSphere(const XMFLOAT3& xmf3RayOrigin, const XMFLOAT3& x
 	return((fHitDistance >= 0.0f) && (fHitDistance <= fMaxDistance));
 }
 
-static bool IsRayBlockedBeforeDistance(const XMFLOAT3& xmf3RayOrigin, const XMFLOAT3& xmf3RayDirection, float fHitDistance, const MAZE_MAP_DESC& map, const std::vector<DOOR_OBJECT>& doors)
+static bool IsRayBlockedBeforeDistance(const XMFLOAT3& xmf3RayOrigin, const XMFLOAT3& xmf3RayDirection, float fHitDistance, const MAZE_MAP_DESC& map, const std::vector<DOOR_OBJECT>& doors, int stage)
 {
 	int nSteps = (int)(fHitDistance / (MAZE_CELL_SIZE * 0.25f));
 	if (nSteps < 2) return(false);
@@ -464,12 +528,12 @@ static bool IsRayBlockedBeforeDistance(const XMFLOAT3& xmf3RayOrigin, const XMFL
 		float x = xmf3RayOrigin.x + (xmf3RayDirection.x * fHitDistance * t);
 		float y = xmf3RayOrigin.y + (xmf3RayDirection.y * fHitDistance * t);
 		float z = xmf3RayOrigin.z + (xmf3RayDirection.z * fHitDistance * t);
-		if (IsBlockedAtWorld(x, z, y, map, doors)) return(true);
+		if (IsBlockedAtWorld(x, z, y, map, doors, stage)) return(true);
 	}
 	return(false);
 }
 
-static bool CanEnemySeePlayer(const ENEMY_OBJECT& enemy, const XMFLOAT3& xmf3EnemyPosition, const XMFLOAT3& xmf3PlayerPosition, const MAZE_MAP_DESC& map, const std::vector<DOOR_OBJECT>& doors)
+static bool CanEnemySeePlayer(const ENEMY_OBJECT& enemy, const XMFLOAT3& xmf3EnemyPosition, const XMFLOAT3& xmf3PlayerPosition, const MAZE_MAP_DESC& map, const std::vector<DOOR_OBJECT>& doors, int stage)
 {
 	if (!enemy.m_pObject) return(false);
 	if (GetMazeFloorIndexFromWorldY(xmf3EnemyPosition.y) != GetMazeFloorIndexFromWorldY(xmf3PlayerPosition.y)) return(false);
@@ -487,10 +551,10 @@ static bool CanEnemySeePlayer(const ENEMY_OBJECT& enemy, const XMFLOAT3& xmf3Ene
 	float fMinDot = cosf(XMConvertToRadians(ENEMY_VIEW_HALF_ANGLE));
 	if (fDot < fMinDot) return(false);
 
-	return(HasLineOfSightToPlayer(xmf3EnemyPosition, xmf3PlayerPosition, map, doors));
+	return(HasLineOfSightToPlayer(xmf3EnemyPosition, xmf3PlayerPosition, map, doors, stage));
 }
 
-static bool MoveEnemyToward(ENEMY_OBJECT& enemy, const XMFLOAT3& xmf3TargetPosition, float fTimeElapsed, const MAZE_MAP_DESC& map, const std::vector<DOOR_OBJECT>& doors, float fStopDistance)
+static bool MoveEnemyToward(ENEMY_OBJECT& enemy, const XMFLOAT3& xmf3TargetPosition, float fTimeElapsed, const MAZE_MAP_DESC& map, const std::vector<DOOR_OBJECT>& doors, int stage, float fStopDistance)
 {
 	if (!enemy.m_pObject) return(false);
 
@@ -505,10 +569,10 @@ static bool MoveEnemyToward(ENEMY_OBJECT& enemy, const XMFLOAT3& xmf3TargetPosit
 
 	XMFLOAT3 xmf3ResolvedPosition = xmf3EnemyPosition;
 	xmf3ResolvedPosition.x += xmf3Direction.x * fMoveDistance;
-	if (IsEnemyBlockedAtWorld(xmf3ResolvedPosition.x, xmf3ResolvedPosition.z, xmf3EnemyPosition.y, map, doors)) xmf3ResolvedPosition.x = xmf3EnemyPosition.x;
+	if (IsEnemyBlockedAtWorld(xmf3ResolvedPosition.x, xmf3ResolvedPosition.z, xmf3EnemyPosition.y, map, doors, stage)) xmf3ResolvedPosition.x = xmf3EnemyPosition.x;
 
 	xmf3ResolvedPosition.z += xmf3Direction.z * fMoveDistance;
-	if (IsEnemyBlockedAtWorld(xmf3ResolvedPosition.x, xmf3ResolvedPosition.z, xmf3EnemyPosition.y, map, doors)) xmf3ResolvedPosition.z = xmf3EnemyPosition.z;
+	if (IsEnemyBlockedAtWorld(xmf3ResolvedPosition.x, xmf3ResolvedPosition.z, xmf3EnemyPosition.y, map, doors, stage)) xmf3ResolvedPosition.z = xmf3EnemyPosition.z;
 
 	xmf3ResolvedPosition.y = GetMazeFloorHeight(xmf3ResolvedPosition.x, xmf3ResolvedPosition.z, xmf3EnemyPosition.y, map);
 	SetObjectLookDirectionXZ(enemy.m_pObject, xmf3ResolvedPosition, xmf3Direction);
@@ -517,14 +581,14 @@ static bool MoveEnemyToward(ENEMY_OBJECT& enemy, const XMFLOAT3& xmf3TargetPosit
 
 bool CScene::IsPlayerBlockedAtWorld(float x, float z, float y)
 {
-	const MAZE_MAP_DESC& map = g_pMazeMaps[0];
+	const MAZE_MAP_DESC& map = g_pMazeMaps[GetStageIndexFromStageNumber(m_nSelectedStage)];
 	const float fPlayerRadius = 6.0f;
 	const float px[4] = { x - fPlayerRadius, x + fPlayerRadius, x - fPlayerRadius, x + fPlayerRadius };
 	const float pz[4] = { z - fPlayerRadius, z - fPlayerRadius, z + fPlayerRadius, z + fPlayerRadius };
 
 	for (int i = 0; i < 4; i++)
 	{
-		if (IsBlockedAtWorld(px[i], pz[i], y, map, m_vDoors)) return(true);
+		if (IsBlockedAtWorld(px[i], pz[i], y, map, m_vDoors, GetStageIndexFromStageNumber(m_nSelectedStage))) return(true);
 	}
 	return(false);
 }
@@ -536,6 +600,11 @@ void CScene::BeginStage(int nStage)
 	m_bGameOver = false;
 	m_fHitEffectTime = 0.0f;
 	m_nScreenMode = SCENE_SCREEN_PLAYING;
+	if (m_pPlayer)
+	{
+		const MAZE_MAP_DESC& map = g_pMazeMaps[GetStageIndexFromStageNumber(m_nSelectedStage)];
+		m_pPlayer->SetPosition(FindMazeSpawnPosition(map));
+	}
 }
 
 void CScene::DamagePlayer(int nDamage, const XMFLOAT3& xmf3HitDirection)
@@ -576,100 +645,108 @@ void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *p
 	m_vEnemies.clear();
 
 	std::vector<CGameObject*> ppObjects;
-	const MAZE_MAP_DESC& map = g_pMazeMaps[0];
-
-	for (int z = 0; z < map.m_nHeight; z++)
+	const int ppnStageEnemyCells[][13][3] =
 	{
-		for (int x = 0; x < map.m_nWidth; x++)
 		{
-			XMFLOAT3 xmf3BaseFloorPosition = GetMazeCellPosition(x, z, map.m_nWidth, map.m_nHeight, -1.0f);
-			ppObjects.push_back(CreateColoredBoxObject(pd3dDevice, pd3dCommandList, xmf3BaseFloorPosition, XMFLOAT3(MAZE_CELL_SIZE, 2.0f, MAZE_CELL_SIZE), map.m_xmf4FloorColor));
-
-			for (int floor = 0; floor < MAZE_FLOOR_COUNT; floor++)
-			{
-				char tile = GetMazeTileAtCell(map, floor, x, z);
-				if ((floor == 1) && !HasSecondFloorTile(tile)) continue;
-
-				float fFloorHeight = (floor == 1) ? MAZE_SECOND_FLOOR_HEIGHT : 0.0f;
-				if (floor == 1)
-				{
-					XMFLOAT3 xmf3RaisedFloorPosition = GetMazeCellPosition(x, z, map.m_nWidth, map.m_nHeight, fFloorHeight - 1.0f);
-					ppObjects.push_back(CreateColoredBoxObject(pd3dDevice, pd3dCommandList, xmf3RaisedFloorPosition, XMFLOAT3(MAZE_CELL_SIZE, 2.0f, MAZE_CELL_SIZE), map.m_xmf4RaisedFloorColor));
-				}
-
-				if (tile == '#')
-				{
-					XMFLOAT3 xmf3WallPosition = GetMazeCellPosition(x, z, map.m_nWidth, map.m_nHeight, fFloorHeight + (MAZE_WALL_HEIGHT * 0.5f));
-					ppObjects.push_back(CreateColoredBoxObject(pd3dDevice, pd3dCommandList, xmf3WallPosition, XMFLOAT3(MAZE_CELL_SIZE, MAZE_WALL_HEIGHT, MAZE_CELL_SIZE), map.m_xmf4WallColor));
-				}
-				else if (tile == 'D')
-				{
-					bool bHorizontalDoor = IsHorizontalDoor(map, floor, x, z);
-					XMFLOAT3 xmf3DoorPosition = GetMazeCellPosition(x, z, map.m_nWidth, map.m_nHeight, fFloorHeight + (MAZE_DOOR_HEIGHT * 0.5f));
-					XMFLOAT3 xmf3DoorScale = bHorizontalDoor ? XMFLOAT3(MAZE_CELL_SIZE * 0.90f, MAZE_DOOR_HEIGHT, 4.0f) : XMFLOAT3(4.0f, MAZE_DOOR_HEIGHT, MAZE_CELL_SIZE * 0.90f);
-					CGameObject *pDoorObject = CreateColoredBoxObject(pd3dDevice, pd3dCommandList, xmf3DoorPosition, xmf3DoorScale, map.m_xmf4DoorColor);
-					ppObjects.push_back(pDoorObject);
-
-					DOOR_OBJECT door;
-					door.m_pObject = pDoorObject;
-					door.m_nCellX = x;
-					door.m_nCellZ = z;
-					door.m_nFloor = floor;
-					door.m_bHorizontal = bHorizontalDoor;
-					door.m_fFloorHeight = fFloorHeight;
-					door.m_xmf3ClosedPosition = xmf3DoorPosition;
-					m_vDoors.push_back(door);
-				}
-			}
-
-			char baseTile = GetMazeTileAtCell(map, 0, x, z);
-			if (baseTile == '^')
-			{
-				XMFLOAT3 xmf3CellCenter = GetMazeCellPosition(x, z, map.m_nWidth, map.m_nHeight, 0.0f);
-				for (int i = 0; i < MAZE_STAIR_STEP_COUNT; i++)
-				{
-					float fStepHeight = ((float)(i + 1) / (float)MAZE_STAIR_STEP_COUNT) * MAZE_SECOND_FLOOR_HEIGHT;
-					float fStepDepth = MAZE_CELL_SIZE / (float)MAZE_STAIR_STEP_COUNT;
-					XMFLOAT3 xmf3StepPosition = XMFLOAT3(xmf3CellCenter.x, fStepHeight * 0.5f, xmf3CellCenter.z - (MAZE_CELL_SIZE * 0.5f) + (fStepDepth * 0.5f) + (fStepDepth * i));
-					ppObjects.push_back(CreateColoredBoxObject(pd3dDevice, pd3dCommandList, xmf3StepPosition, XMFLOAT3(MAZE_CELL_SIZE * 0.85f, fStepHeight, fStepDepth), map.m_xmf4StairColor));
-				}
-			}
+			{ 16, 2, 0 }, { 7, 7, 0 }, { 18, 10, 1 }, { 19, 2, 0 }, { 18, 6, 0 },
+			{ 3, 14, 0 }, { 4, 8, 1 }, { 18, 3, 1 }, { 8, 12, 1 }, { 6, 14, 1 },
+			{ 4, 4, 1 }, { 3, 9, 1 }, { 11, 11, 1 }
+		},
+		{
+			{ 10, 2, 0 }, { 17, 3, 0 }, { 4, 7, 0 }, { 12, 9, 0 }, { 18, 13, 0 },
+			{ 5, 14, 0 }, { 5, 3, 1 }, { 11, 4, 1 }, { 17, 6, 1 }, { 4, 10, 1 },
+			{ 10, 10, 1 }, { 16, 12, 1 }, { 19, 15, 1 }
 		}
-	}
-	const int pnEnemyCells[][3] =
-	{
-		{ 16, 2, 0 },
-		{ 7, 7, 0 },
-		{ 18, 10, 1 },
-		{ 19, 2, 0 },
-		{ 18, 6, 0 },
-		{ 3, 14, 0 },
-		{ 4, 8, 1 },
-		{ 18, 3, 1 },
-		{ 8, 12, 1 },
-		{ 6, 14, 1 },
-		{ 4, 4, 1 },
-		{ 3, 9, 1 },
-		{ 11, 11, 1 }
 	};
-	for (int i = 0; i < _countof(pnEnemyCells); i++)
+
+	for (int stage = 0; stage < _countof(g_pMazeMaps); stage++)
 	{
-		XMFLOAT3 xmf3EnemyCellPosition = GetMazeCellPosition(pnEnemyCells[i][0], pnEnemyCells[i][1], map.m_nWidth, map.m_nHeight, 0.0f);
-		xmf3EnemyCellPosition.y = (pnEnemyCells[i][2] == 1) ? MAZE_SECOND_FLOOR_HEIGHT : GetMazeFloorHeight(xmf3EnemyCellPosition.x, xmf3EnemyCellPosition.z, 0.0f, map);
-		CGameObject *pEnemyObject = CreateArmedCharacterObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Soldier_Aiming_Baked.bin", xmf3EnemyCellPosition, XMFLOAT3(0.0f, 0.0f, 0.0f));
-		if (pEnemyObject)
+		const MAZE_MAP_DESC& map = g_pMazeMaps[stage];
+		m_pnStageWorldStart[stage] = (int)ppObjects.size();
+
+		for (int z = 0; z < map.m_nHeight; z++)
 		{
-			ppObjects.push_back(pEnemyObject);
-			ENEMY_OBJECT enemy;
-			enemy.m_pObject = pEnemyObject;
-			enemy.m_nFloor = pnEnemyCells[i][2];
-			enemy.m_fMoveSpeed = 18.0f;
-			enemy.m_fFireCooldown = ENEMY_FIRE_INTERVAL * (0.35f + (0.25f * (float)(i % 4)));
-			enemy.m_xmf3SpawnPosition = xmf3EnemyCellPosition;
-			enemy.m_xmf3PatrolTarget = XMFLOAT3(xmf3EnemyCellPosition.x + ((i % 2 == 0) ? ENEMY_PATROL_DISTANCE : -ENEMY_PATROL_DISTANCE), xmf3EnemyCellPosition.y, xmf3EnemyCellPosition.z);
-			enemy.m_xmf3LastKnownPlayerPosition = xmf3EnemyCellPosition;
-			m_vEnemies.push_back(enemy);
+			for (int x = 0; x < map.m_nWidth; x++)
+			{
+				XMFLOAT3 xmf3BaseFloorPosition = GetMazeCellPosition(x, z, map.m_nWidth, map.m_nHeight, -1.0f);
+				ppObjects.push_back(CreateColoredBoxObject(pd3dDevice, pd3dCommandList, xmf3BaseFloorPosition, XMFLOAT3(MAZE_CELL_SIZE, 2.0f, MAZE_CELL_SIZE), map.m_xmf4FloorColor));
+
+				for (int floor = 0; floor < MAZE_FLOOR_COUNT; floor++)
+				{
+					char tile = GetMazeTileAtCell(map, floor, x, z);
+					if ((floor == 1) && !HasSecondFloorTile(tile)) continue;
+
+					float fFloorHeight = (floor == 1) ? MAZE_SECOND_FLOOR_HEIGHT : 0.0f;
+					if (floor == 1)
+					{
+						XMFLOAT3 xmf3RaisedFloorPosition = GetMazeCellPosition(x, z, map.m_nWidth, map.m_nHeight, fFloorHeight - 1.0f);
+						ppObjects.push_back(CreateColoredBoxObject(pd3dDevice, pd3dCommandList, xmf3RaisedFloorPosition, XMFLOAT3(MAZE_CELL_SIZE, 2.0f, MAZE_CELL_SIZE), map.m_xmf4RaisedFloorColor));
+					}
+
+					if (tile == '#')
+					{
+						XMFLOAT3 xmf3WallPosition = GetMazeCellPosition(x, z, map.m_nWidth, map.m_nHeight, fFloorHeight + (MAZE_WALL_HEIGHT * 0.5f));
+						ppObjects.push_back(CreateColoredBoxObject(pd3dDevice, pd3dCommandList, xmf3WallPosition, XMFLOAT3(MAZE_CELL_SIZE, MAZE_WALL_HEIGHT, MAZE_CELL_SIZE), map.m_xmf4WallColor));
+					}
+					else if (tile == 'D')
+					{
+						bool bHorizontalDoor = IsHorizontalDoor(map, floor, x, z);
+						XMFLOAT3 xmf3DoorPosition = GetMazeCellPosition(x, z, map.m_nWidth, map.m_nHeight, fFloorHeight + (MAZE_DOOR_HEIGHT * 0.5f));
+						XMFLOAT3 xmf3DoorScale = bHorizontalDoor ? XMFLOAT3(MAZE_CELL_SIZE * 0.90f, MAZE_DOOR_HEIGHT, 4.0f) : XMFLOAT3(4.0f, MAZE_DOOR_HEIGHT, MAZE_CELL_SIZE * 0.90f);
+						CGameObject *pDoorObject = CreateColoredBoxObject(pd3dDevice, pd3dCommandList, xmf3DoorPosition, xmf3DoorScale, map.m_xmf4DoorColor);
+						ppObjects.push_back(pDoorObject);
+
+						DOOR_OBJECT door;
+						door.m_pObject = pDoorObject;
+						door.m_nStage = stage;
+						door.m_nCellX = x;
+						door.m_nCellZ = z;
+						door.m_nFloor = floor;
+						door.m_bHorizontal = bHorizontalDoor;
+						door.m_fFloorHeight = fFloorHeight;
+						door.m_xmf3ClosedPosition = xmf3DoorPosition;
+						m_vDoors.push_back(door);
+					}
+				}
+
+				char baseTile = GetMazeTileAtCell(map, 0, x, z);
+				if (baseTile == '^')
+				{
+					XMFLOAT3 xmf3CellCenter = GetMazeCellPosition(x, z, map.m_nWidth, map.m_nHeight, 0.0f);
+					for (int i = 0; i < MAZE_STAIR_STEP_COUNT; i++)
+					{
+						float fStepHeight = ((float)(i + 1) / (float)MAZE_STAIR_STEP_COUNT) * MAZE_SECOND_FLOOR_HEIGHT;
+						float fStepDepth = MAZE_CELL_SIZE / (float)MAZE_STAIR_STEP_COUNT;
+						XMFLOAT3 xmf3StepPosition = XMFLOAT3(xmf3CellCenter.x, fStepHeight * 0.5f, xmf3CellCenter.z - (MAZE_CELL_SIZE * 0.5f) + (fStepDepth * 0.5f) + (fStepDepth * i));
+						ppObjects.push_back(CreateColoredBoxObject(pd3dDevice, pd3dCommandList, xmf3StepPosition, XMFLOAT3(MAZE_CELL_SIZE * 0.85f, fStepHeight, fStepDepth), map.m_xmf4StairColor));
+					}
+				}
+			}
 		}
+
+		for (int i = 0; i < _countof(ppnStageEnemyCells[stage]); i++)
+		{
+			const int *pnEnemyCell = ppnStageEnemyCells[stage][i];
+			XMFLOAT3 xmf3EnemyCellPosition = GetMazeCellPosition(pnEnemyCell[0], pnEnemyCell[1], map.m_nWidth, map.m_nHeight, 0.0f);
+			xmf3EnemyCellPosition.y = (pnEnemyCell[2] == 1) ? MAZE_SECOND_FLOOR_HEIGHT : GetMazeFloorHeight(xmf3EnemyCellPosition.x, xmf3EnemyCellPosition.z, 0.0f, map);
+			CGameObject *pEnemyObject = CreateArmedCharacterObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Soldier_Aiming_Baked.bin", xmf3EnemyCellPosition, XMFLOAT3(0.0f, 0.0f, 0.0f));
+			if (pEnemyObject)
+			{
+				ppObjects.push_back(pEnemyObject);
+				ENEMY_OBJECT enemy;
+				enemy.m_pObject = pEnemyObject;
+				enemy.m_nStage = stage;
+				enemy.m_nFloor = pnEnemyCell[2];
+				enemy.m_fMoveSpeed = 18.0f;
+				enemy.m_fFireCooldown = ENEMY_FIRE_INTERVAL * (0.35f + (0.25f * (float)(i % 4)));
+				enemy.m_xmf3SpawnPosition = xmf3EnemyCellPosition;
+				enemy.m_xmf3PatrolTarget = XMFLOAT3(xmf3EnemyCellPosition.x + ((i % 2 == 0) ? ENEMY_PATROL_DISTANCE : -ENEMY_PATROL_DISTANCE), xmf3EnemyCellPosition.y, xmf3EnemyCellPosition.z);
+				enemy.m_xmf3LastKnownPlayerPosition = xmf3EnemyCellPosition;
+				m_vEnemies.push_back(enemy);
+			}
+		}
+
+		m_pnStageWorldCount[stage] = (int)ppObjects.size() - m_pnStageWorldStart[stage];
 	}
 
 	m_nWorldObjects = (int)ppObjects.size();
@@ -869,8 +946,15 @@ void CScene::AnimateObjects(float fTimeElapsed)
 	m_fElapsedTime = fTimeElapsed;
 	m_fMenuElapsedTime += fTimeElapsed;
 
-	int nAnimateObjects = (m_nScreenMode == SCENE_SCREEN_PLAYING) ? m_nWorldObjects : m_nGameObjects;
-	for (int i = 0; i < nAnimateObjects; i++) m_ppGameObjects[i]->Animate(fTimeElapsed, NULL);
+	if (m_nScreenMode == SCENE_SCREEN_PLAYING)
+	{
+		int nStageIndex = GetStageIndexFromStageNumber(m_nSelectedStage);
+		for (int i = m_pnStageWorldStart[nStageIndex]; i < (m_pnStageWorldStart[nStageIndex] + m_pnStageWorldCount[nStageIndex]); i++) m_ppGameObjects[i]->Animate(fTimeElapsed, NULL);
+	}
+	else
+	{
+		for (int i = 0; i < m_nGameObjects; i++) m_ppGameObjects[i]->Animate(fTimeElapsed, NULL);
+	}
 
 	if (m_nScreenMode == SCENE_SCREEN_TITLE)
 	{
@@ -899,12 +983,14 @@ void CScene::AnimateObjects(float fTimeElapsed)
 
 	if (m_nScreenMode != SCENE_SCREEN_PLAYING) return;
 
-	const MAZE_MAP_DESC& map = g_pMazeMaps[0];
+	int nStageIndex = GetStageIndexFromStageNumber(m_nSelectedStage);
+	const MAZE_MAP_DESC& map = g_pMazeMaps[nStageIndex];
 	XMFLOAT3 xmf3PlayerPosition = (m_pPlayer) ? m_pPlayer->GetPosition() : XMFLOAT3(0.0f, 0.0f, 0.0f);
 
 	for (size_t i = 0; i < m_vDoors.size(); i++)
 	{
 		DOOR_OBJECT& door = m_vDoors[i];
+		if (door.m_nStage != nStageIndex) continue;
 		XMFLOAT3 xmf3DoorCell = GetMazeCellPosition(door.m_nCellX, door.m_nCellZ, map.m_nWidth, map.m_nHeight, door.m_fFloorHeight);
 		bool bSameFloor = (GetMazeFloorIndexFromWorldY(xmf3PlayerPosition.y) == door.m_nFloor);
 		float fTargetOpen = (bSameFloor && (DistanceXZ(xmf3DoorCell, xmf3PlayerPosition) < DOOR_TRIGGER_DISTANCE)) ? 1.0f : 0.0f;
@@ -931,11 +1017,12 @@ void CScene::AnimateObjects(float fTimeElapsed)
 	for (size_t i = 0; i < m_vEnemies.size(); i++)
 	{
 		ENEMY_OBJECT& enemy = m_vEnemies[i];
+		if (enemy.m_nStage != nStageIndex) continue;
 		if (!enemy.m_bAlive || !enemy.m_pObject || !m_pPlayer) continue;
 		if (enemy.m_fFireCooldown > 0.0f) enemy.m_fFireCooldown -= fTimeElapsed;
 
 		XMFLOAT3 xmf3EnemyPosition = enemy.m_pObject->GetPosition();
-		bool bCanSeePlayer = CanEnemySeePlayer(enemy, xmf3EnemyPosition, xmf3PlayerPosition, map, m_vDoors);
+		bool bCanSeePlayer = CanEnemySeePlayer(enemy, xmf3EnemyPosition, xmf3PlayerPosition, map, m_vDoors, nStageIndex);
 		if (bCanSeePlayer)
 		{
 			enemy.m_nState = ENEMY_AI_CHASE;
@@ -950,7 +1037,7 @@ void CScene::AnimateObjects(float fTimeElapsed)
 
 		if (enemy.m_nState == ENEMY_AI_CHASE)
 		{
-			MoveEnemyToward(enemy, xmf3PlayerPosition, fTimeElapsed, map, m_vDoors, ENEMY_STOP_DISTANCE);
+			MoveEnemyToward(enemy, xmf3PlayerPosition, fTimeElapsed, map, m_vDoors, nStageIndex, ENEMY_STOP_DISTANCE);
 			if (bCanSeePlayer && (enemy.m_fFireCooldown <= 0.0f))
 			{
 				xmf3EnemyPosition = enemy.m_pObject->GetPosition();
@@ -963,7 +1050,7 @@ void CScene::AnimateObjects(float fTimeElapsed)
 		else if (enemy.m_nState == ENEMY_AI_SEARCH)
 		{
 			enemy.m_fSearchTime -= fTimeElapsed;
-			bool bReachedLastKnownPosition = MoveEnemyToward(enemy, enemy.m_xmf3LastKnownPlayerPosition, fTimeElapsed, map, m_vDoors, ENEMY_PATROL_REACH_DISTANCE);
+			bool bReachedLastKnownPosition = MoveEnemyToward(enemy, enemy.m_xmf3LastKnownPlayerPosition, fTimeElapsed, map, m_vDoors, nStageIndex, ENEMY_PATROL_REACH_DISTANCE);
 			if (bReachedLastKnownPosition || (enemy.m_fSearchTime <= 0.0f))
 			{
 				enemy.m_nState = ENEMY_AI_PATROL;
@@ -973,7 +1060,7 @@ void CScene::AnimateObjects(float fTimeElapsed)
 		else
 		{
 			XMFLOAT3 xmf3PatrolDestination = enemy.m_bMovingToPatrolTarget ? enemy.m_xmf3PatrolTarget : enemy.m_xmf3SpawnPosition;
-			bool bReachedPatrolPoint = MoveEnemyToward(enemy, xmf3PatrolDestination, fTimeElapsed, map, m_vDoors, ENEMY_PATROL_REACH_DISTANCE);
+			bool bReachedPatrolPoint = MoveEnemyToward(enemy, xmf3PatrolDestination, fTimeElapsed, map, m_vDoors, nStageIndex, ENEMY_PATROL_REACH_DISTANCE);
 			if (bReachedPatrolPoint) enemy.m_bMovingToPatrolTarget = !enemy.m_bMovingToPatrolTarget;
 		}
 	}
@@ -989,7 +1076,8 @@ void CScene::ResolvePlayerCollision(CPlayer *pPlayer, const XMFLOAT3& xmf3OldPos
 {
 	if (!pPlayer || bFreeFlyMode) return;
 
-	const MAZE_MAP_DESC& map = g_pMazeMaps[0];
+	int nStageIndex = GetStageIndexFromStageNumber(m_nSelectedStage);
+	const MAZE_MAP_DESC& map = g_pMazeMaps[nStageIndex];
 	XMFLOAT3 xmf3Position = pPlayer->GetPosition();
 	XMFLOAT3 xmf3ResolvedPosition = xmf3OldPosition;
 
@@ -1012,13 +1100,15 @@ bool CScene::FireRayShot()
 	XMFLOAT3 xmf3RayDirection = pCamera->GetLookVector();
 	xmf3RayDirection = Vector3::Normalize(xmf3RayDirection);
 
-	const MAZE_MAP_DESC& map = g_pMazeMaps[0];
+	int nStageIndex = GetStageIndexFromStageNumber(m_nSelectedStage);
+	const MAZE_MAP_DESC& map = g_pMazeMaps[nStageIndex];
 	int nBestEnemy = -1;
 	float fBestHitDistance = PLAYER_RAY_SHOT_RANGE;
 
 	for (size_t i = 0; i < m_vEnemies.size(); i++)
 	{
 		ENEMY_OBJECT& enemy = m_vEnemies[i];
+		if (enemy.m_nStage != nStageIndex) continue;
 		if (!enemy.m_bAlive || !enemy.m_pObject) continue;
 
 		XMFLOAT3 xmf3EnemyPosition = enemy.m_pObject->GetPosition();
@@ -1026,7 +1116,7 @@ bool CScene::FireRayShot()
 		float fHitDistance = 0.0f;
 		if (!RayIntersectsSphere(xmf3RayOrigin, xmf3RayDirection, xmf3EnemyCenter, PLAYER_RAY_SHOT_RADIUS, PLAYER_RAY_SHOT_RANGE, fHitDistance)) continue;
 		if (fHitDistance >= fBestHitDistance) continue;
-		if (IsRayBlockedBeforeDistance(xmf3RayOrigin, xmf3RayDirection, fHitDistance, map, m_vDoors)) continue;
+		if (IsRayBlockedBeforeDistance(xmf3RayOrigin, xmf3RayDirection, fHitDistance, map, m_vDoors, nStageIndex)) continue;
 
 		fBestHitDistance = fHitDistance;
 		nBestEnemy = (int)i;
@@ -1092,7 +1182,8 @@ void CScene::Render(ID3D12GraphicsCommandList *pd3dCommandList, CCamera *pCamera
 		return;
 	}
 
-	for (int i = 0; i < m_nWorldObjects; i++)
+	int nStageIndex = GetStageIndexFromStageNumber(m_nSelectedStage);
+	for (int i = m_pnStageWorldStart[nStageIndex]; i < (m_pnStageWorldStart[nStageIndex] + m_pnStageWorldCount[nStageIndex]); i++)
 	{
 		if (m_ppGameObjects[i])
 		{
