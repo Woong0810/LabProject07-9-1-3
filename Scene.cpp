@@ -535,7 +535,19 @@ void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *p
 			}
 		}
 	}
-	const int pnEnemyCells[][3] = { { 16, 2, 0 }, { 7, 7, 0 }, { 18, 13, 1 } };
+	const int pnEnemyCells[][3] =
+	{
+		{ 19, 2, 0 },
+		{ 18, 6, 0 },
+		{ 3, 14, 0 },
+		{ 20, 7, 1 },
+		{ 18, 3, 1 },
+		{ 4, 2, 1 },
+		{ 2, 5, 1 },
+		{ 4, 4, 1 },
+		{ 3, 9, 1 },
+		{ 11, 11, 1 }
+	};
 	for (int i = 0; i < _countof(pnEnemyCells); i++)
 	{
 		XMFLOAT3 xmf3EnemyCellPosition = GetMazeCellPosition(pnEnemyCells[i][0], pnEnemyCells[i][1], map.m_nWidth, map.m_nHeight, 0.0f);
