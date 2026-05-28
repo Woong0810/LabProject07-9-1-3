@@ -325,13 +325,10 @@ static void SetMenuTextTransform(CGameObject *pTextObject, const XMFLOAT3& xmf3P
 {
 	if (!pTextObject) return;
 
-	pTextObject->m_xmf4x4Transform = Matrix4x4::Identity();
-	pTextObject->m_xmf4x4Transform._11 = fScale;
-	pTextObject->m_xmf4x4Transform._22 = fScale;
-	pTextObject->m_xmf4x4Transform._33 = fScale;
-	pTextObject->m_xmf4x4Transform._41 = xmf3Position.x;
-	pTextObject->m_xmf4x4Transform._42 = xmf3Position.y;
-	pTextObject->m_xmf4x4Transform._43 = xmf3Position.z;
+	XMMATRIX xmmtxText = XMMatrixScaling(fScale, fScale, fScale) *
+		XMMatrixRotationX(XMConvertToRadians(-90.0f)) *
+		XMMatrixTranslation(xmf3Position.x, xmf3Position.y, xmf3Position.z);
+	XMStoreFloat4x4(&pTextObject->m_xmf4x4Transform, xmmtxText);
 	pTextObject->UpdateTransform(NULL);
 }
 
@@ -606,13 +603,13 @@ void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *p
 
 	m_nWorldObjects = (int)ppObjects.size();
 
-	m_pNameText = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Name_Text.bin", XMFLOAT3(-72.0f, 58.0f, 0.0f), 420.0f, XMFLOAT4(0.10f, 0.76f, 1.0f, 1.0f));
+	m_pNameText = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Name_Text.bin", XMFLOAT3(-80.0f, 55.0f, 0.0f), 360.0f, XMFLOAT4(0.10f, 0.76f, 1.0f, 1.0f));
 	if (m_pNameText) ppObjects.push_back(m_pNameText);
-	m_pStartText = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Start_Text.bin", XMFLOAT3(-58.0f, -28.0f, 0.0f), 420.0f, XMFLOAT4(1.0f, 0.92f, 0.18f, 1.0f));
+	m_pStartText = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Start_Text.bin", XMFLOAT3(-66.0f, -35.0f, 0.0f), 360.0f, XMFLOAT4(1.0f, 0.92f, 0.18f, 1.0f));
 	if (m_pStartText) ppObjects.push_back(m_pStartText);
-	m_pStage1Text = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Stage_1_Text.bin", XMFLOAT3(-120.0f, 5.0f, 0.0f), 330.0f, XMFLOAT4(0.35f, 1.0f, 0.42f, 1.0f));
+	m_pStage1Text = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Stage_1_Text.bin", XMFLOAT3(-135.0f, 0.0f, 0.0f), 285.0f, XMFLOAT4(0.35f, 1.0f, 0.42f, 1.0f));
 	if (m_pStage1Text) ppObjects.push_back(m_pStage1Text);
-	m_pStage2Text = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Stage_2_Text.bin", XMFLOAT3(20.0f, 5.0f, 0.0f), 330.0f, XMFLOAT4(1.0f, 0.48f, 0.28f, 1.0f));
+	m_pStage2Text = CreateMenuTextObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Stage_2_Text.bin", XMFLOAT3(25.0f, 0.0f, 0.0f), 285.0f, XMFLOAT4(1.0f, 0.48f, 0.28f, 1.0f));
 	if (m_pStage2Text) ppObjects.push_back(m_pStage2Text);
 
 	m_nGameObjects = (int)ppObjects.size();
