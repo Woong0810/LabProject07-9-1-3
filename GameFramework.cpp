@@ -549,6 +549,100 @@ void CGameFramework::RenderShootEffect(D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDesc
 	m_pd3dCommandList->ClearRenderTargetView(d3dRtvCPUDescriptorHandle, pfFlashColor, _countof(pd3dFlashRects), pd3dFlashRects);
 }
 
+static void AddUiRect(D3D12_RECT *pd3dRects, int& nRects, LONG left, LONG top, LONG right, LONG bottom)
+{
+	pd3dRects[nRects++] = { left, top, right, bottom };
+}
+
+static void AddSevenSegmentDigitRects(D3D12_RECT *pd3dRects, int& nRects, int nDigit, LONG x, LONG y, LONG nScale)
+{
+	static const bool ppSegments[10][7] =
+	{
+		{ true, true, true, true, true, true, false },
+		{ false, true, true, false, false, false, false },
+		{ true, true, false, true, true, false, true },
+		{ true, true, true, true, false, false, true },
+		{ false, true, true, false, false, true, true },
+		{ true, false, true, true, false, true, true },
+		{ true, false, true, true, true, true, true },
+		{ true, true, true, false, false, false, false },
+		{ true, true, true, true, true, true, true },
+		{ true, true, true, true, false, true, true }
+	};
+
+	const LONG w = 4 * nScale;
+	const LONG h = 8 * nScale;
+	const LONG t = nScale;
+
+	if (ppSegments[nDigit][0]) AddUiRect(pd3dRects, nRects, x + t, y, x + w - t, y + t);
+	if (ppSegments[nDigit][1]) AddUiRect(pd3dRects, nRects, x + w - t, y + t, x + w, y + (h / 2) - (t / 2));
+	if (ppSegments[nDigit][2]) AddUiRect(pd3dRects, nRects, x + w - t, y + (h / 2) + (t / 2), x + w, y + h - t);
+	if (ppSegments[nDigit][3]) AddUiRect(pd3dRects, nRects, x + t, y + h - t, x + w - t, y + h);
+	if (ppSegments[nDigit][4]) AddUiRect(pd3dRects, nRects, x, y + (h / 2) + (t / 2), x + t, y + h - t);
+	if (ppSegments[nDigit][5]) AddUiRect(pd3dRects, nRects, x, y + t, x + t, y + (h / 2) - (t / 2));
+	if (ppSegments[nDigit][6]) AddUiRect(pd3dRects, nRects, x + t, y + (h / 2) - (t / 2), x + w - t, y + (h / 2) + (t / 2));
+}
+
+void CGameFramework::RenderPlayerHealth(D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle)
+{
+	if (!m_pScene || !m_pScene->IsPlaying()) return;
+
+	int nHealth = m_pScene->GetPlayerHealth();
+	if (nHealth < 0) nHealth = 0;
+	if (nHealth > 100) nHealth = 100;
+
+	D3D12_RECT pd3dBackgroundRects[3] =
+	{
+		{ 26, 24, 340, 72 },
+		{ 102, 46, 248, 61 },
+		{ 99, 43, 251, 64 }
+	};
+	float pfBackgroundColor[4] = { 0.02f, 0.02f, 0.02f, 1.0f };
+	m_pd3dCommandList->ClearRenderTargetView(d3dRtvCPUDescriptorHandle, pfBackgroundColor, _countof(pd3dBackgroundRects), pd3dBackgroundRects);
+
+	D3D12_RECT pd3dHpRects[32];
+	int nHpRects = 0;
+	AddUiRect(pd3dHpRects, nHpRects, 38, 34, 43, 62);
+	AddUiRect(pd3dHpRects, nHpRects, 57, 34, 62, 62);
+	AddUiRect(pd3dHpRects, nHpRects, 43, 46, 57, 51);
+	AddUiRect(pd3dHpRects, nHpRects, 72, 34, 77, 62);
+	AddUiRect(pd3dHpRects, nHpRects, 77, 34, 94, 39);
+	AddUiRect(pd3dHpRects, nHpRects, 77, 46, 94, 51);
+	AddUiRect(pd3dHpRects, nHpRects, 89, 39, 94, 46);
+	float pfTextColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	m_pd3dCommandList->ClearRenderTargetView(d3dRtvCPUDescriptorHandle, pfTextColor, nHpRects, pd3dHpRects);
+
+	D3D12_RECT d3dHealthRect = { 102, 46, 102 + (LONG)(146.0f * ((float)nHealth / 100.0f)), 61 };
+	float pfHealthColor[4] = { 0.0f, 0.85f, 0.18f, 1.0f };
+	if (nHealth <= 30)
+	{
+		pfHealthColor[0] = 0.95f;
+		pfHealthColor[1] = 0.08f;
+		pfHealthColor[2] = 0.03f;
+	}
+	m_pd3dCommandList->ClearRenderTargetView(d3dRtvCPUDescriptorHandle, pfHealthColor, 1, &d3dHealthRect);
+
+	D3D12_RECT pd3dNumberRects[32];
+	int nNumberRects = 0;
+	LONG xDigit = 272;
+	if (nHealth >= 100)
+	{
+		AddSevenSegmentDigitRects(pd3dNumberRects, nNumberRects, 1, xDigit, 30, 3);
+		AddSevenSegmentDigitRects(pd3dNumberRects, nNumberRects, 0, xDigit + 18, 30, 3);
+		AddSevenSegmentDigitRects(pd3dNumberRects, nNumberRects, 0, xDigit + 36, 30, 3);
+	}
+	else if (nHealth >= 10)
+	{
+		AddSevenSegmentDigitRects(pd3dNumberRects, nNumberRects, nHealth / 10, xDigit + 18, 30, 3);
+		AddSevenSegmentDigitRects(pd3dNumberRects, nNumberRects, nHealth % 10, xDigit + 36, 30, 3);
+	}
+	else
+	{
+		AddSevenSegmentDigitRects(pd3dNumberRects, nNumberRects, nHealth, xDigit + 36, 30, 3);
+	}
+	m_pd3dCommandList->ClearRenderTargetView(d3dRtvCPUDescriptorHandle, pfTextColor, nNumberRects, pd3dNumberRects);
+}
+
 void CGameFramework::WaitForGpuComplete()
 {
 	const UINT64 nFenceValue = ++m_nFenceValues[m_nSwapChainBufferIndex];
@@ -584,6 +678,11 @@ void CGameFramework::FrameAdvance()
 	ProcessInput();
 
     AnimateObjects();
+	if (m_pScene && m_pScene->IsGameOver())
+	{
+		::PostMessage(m_hWnd, WM_CLOSE, 0, 0);
+		return;
+	}
 
 	HRESULT hResult = m_pd3dCommandAllocator->Reset();
 	hResult = m_pd3dCommandList->Reset(m_pd3dCommandAllocator, NULL);
@@ -621,6 +720,7 @@ void CGameFramework::FrameAdvance()
 	{
 		RenderCrosshair(d3dRtvCPUDescriptorHandle);
 		RenderShootEffect(d3dRtvCPUDescriptorHandle);
+		RenderPlayerHealth(d3dRtvCPUDescriptorHandle);
 	}
 
 	d3dResourceBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;

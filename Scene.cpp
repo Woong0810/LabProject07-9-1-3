@@ -92,6 +92,9 @@ static const float ENEMY_VIEW_HALF_ANGLE = 55.0f;
 static const float ENEMY_SEARCH_DURATION = 4.0f;
 static const float ENEMY_PATROL_DISTANCE = 60.0f;
 static const float ENEMY_PATROL_REACH_DISTANCE = 4.0f;
+static const float ENEMY_FIRE_INTERVAL = 1.6f;
+static const int ENEMY_FIRE_DAMAGE = 10;
+static const int PLAYER_MAX_HEALTH = 100;
 static const float PLAYER_RAY_SHOT_RANGE = 500.0f;
 static const float PLAYER_RAY_SHOT_RADIUS = 10.0f;
 static const float PLAYER_RAY_SHOT_HEIGHT = 18.0f;
@@ -526,7 +529,21 @@ bool CScene::IsPlayerBlockedAtWorld(float x, float z, float y)
 void CScene::BeginStage(int nStage)
 {
 	m_nSelectedStage = nStage;
+	m_nPlayerHealth = PLAYER_MAX_HEALTH;
+	m_bGameOver = false;
 	m_nScreenMode = SCENE_SCREEN_PLAYING;
+}
+
+void CScene::DamagePlayer(int nDamage)
+{
+	if ((m_nScreenMode != SCENE_SCREEN_PLAYING) || m_bGameOver) return;
+
+	m_nPlayerHealth -= nDamage;
+	if (m_nPlayerHealth <= 0)
+	{
+		m_nPlayerHealth = 0;
+		m_bGameOver = true;
+	}
 }
 
 void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *pd3dCommandList)
@@ -629,6 +646,7 @@ void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *p
 			enemy.m_pObject = pEnemyObject;
 			enemy.m_nFloor = pnEnemyCells[i][2];
 			enemy.m_fMoveSpeed = 18.0f;
+			enemy.m_fFireCooldown = ENEMY_FIRE_INTERVAL * (0.35f + (0.25f * (float)(i % 4)));
 			enemy.m_xmf3SpawnPosition = xmf3EnemyCellPosition;
 			enemy.m_xmf3PatrolTarget = XMFLOAT3(xmf3EnemyCellPosition.x + ((i % 2 == 0) ? ENEMY_PATROL_DISTANCE : -ENEMY_PATROL_DISTANCE), xmf3EnemyCellPosition.y, xmf3EnemyCellPosition.z);
 			enemy.m_xmf3LastKnownPlayerPosition = xmf3EnemyCellPosition;
@@ -891,6 +909,7 @@ void CScene::AnimateObjects(float fTimeElapsed)
 	{
 		ENEMY_OBJECT& enemy = m_vEnemies[i];
 		if (!enemy.m_bAlive || !enemy.m_pObject || !m_pPlayer) continue;
+		if (enemy.m_fFireCooldown > 0.0f) enemy.m_fFireCooldown -= fTimeElapsed;
 
 		XMFLOAT3 xmf3EnemyPosition = enemy.m_pObject->GetPosition();
 		bool bCanSeePlayer = CanEnemySeePlayer(enemy, xmf3EnemyPosition, xmf3PlayerPosition, map, m_vDoors);
@@ -909,6 +928,14 @@ void CScene::AnimateObjects(float fTimeElapsed)
 		if (enemy.m_nState == ENEMY_AI_CHASE)
 		{
 			MoveEnemyToward(enemy, xmf3PlayerPosition, fTimeElapsed, map, m_vDoors, ENEMY_STOP_DISTANCE);
+			if (bCanSeePlayer && (enemy.m_fFireCooldown <= 0.0f))
+			{
+				xmf3EnemyPosition = enemy.m_pObject->GetPosition();
+				XMFLOAT3 xmf3FireDirection = XMFLOAT3(xmf3PlayerPosition.x - xmf3EnemyPosition.x, 0.0f, xmf3PlayerPosition.z - xmf3EnemyPosition.z);
+				if (Vector3::Length(xmf3FireDirection) > 0.001f) SetObjectLookDirectionXZ(enemy.m_pObject, xmf3EnemyPosition, Vector3::Normalize(xmf3FireDirection));
+				DamagePlayer(ENEMY_FIRE_DAMAGE);
+				enemy.m_fFireCooldown = ENEMY_FIRE_INTERVAL;
+			}
 		}
 		else if (enemy.m_nState == ENEMY_AI_SEARCH)
 		{

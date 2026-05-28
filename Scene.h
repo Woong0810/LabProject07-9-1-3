@@ -62,6 +62,7 @@ struct ENEMY_OBJECT
 {
 	CGameObject				*m_pObject = NULL;
 	float					m_fMoveSpeed = 18.0f;
+	float					m_fFireCooldown = 0.0f;
 	ENEMY_AI_STATE			m_nState = ENEMY_AI_PATROL;
 	int						m_nFloor = 0;
 	bool					m_bAlive = true;
@@ -106,8 +107,11 @@ public:
 	bool FireRayShot();
 	bool IsShotEffectVisible() const { return(m_fShotEffectTime > 0.0f); }
 	bool IsPlaying() const { return(m_nScreenMode == SCENE_SCREEN_PLAYING); }
+	bool IsGameOver() const { return(m_bGameOver); }
+	int GetPlayerHealth() const { return(m_nPlayerHealth); }
 	SCENE_SCREEN_MODE GetScreenMode() const { return(m_nScreenMode); }
 	void BeginStage(int nStage);
+	void DamagePlayer(int nDamage);
 
 	void ReleaseUploadBuffers();
 	void ResolvePlayerCollision(CPlayer *pPlayer, const XMFLOAT3& xmf3OldPosition, bool bFreeFlyMode);
@@ -133,6 +137,8 @@ public:
 	std::vector<DOOR_OBJECT>	m_vDoors;
 	std::vector<ENEMY_OBJECT>	m_vEnemies;
 	float						m_fShotEffectTime = 0.0f;
+	int							m_nPlayerHealth = 100;
+	bool						m_bGameOver = false;
 
 	LIGHT						*m_pLights = NULL;
 	int							m_nLights = 0;
