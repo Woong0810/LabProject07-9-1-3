@@ -96,13 +96,17 @@ void CScene::BuildDefaultLightsAndMaterials()
 	{
 		LIGHT& light = m_pLights[i + 2];
 		light.m_bEnable = true;
-		light.m_nType = POINT_LIGHT;
-		light.m_fRange = 155.0f;
-		light.m_xmf4Ambient = XMFLOAT4(0.025f, 0.025f, 0.023f, 1.0f);
-		light.m_xmf4Diffuse = XMFLOAT4(0.45f, 0.44f, 0.38f, 1.0f);
-		light.m_xmf4Specular = XMFLOAT4(0.10f, 0.10f, 0.09f, 12.0f);
+		light.m_nType = SPOT_LIGHT;
+		light.m_fRange = 115.0f;
+		light.m_xmf4Ambient = XMFLOAT4(0.015f, 0.015f, 0.014f, 1.0f);
+		light.m_xmf4Diffuse = XMFLOAT4(0.62f, 0.60f, 0.50f, 1.0f);
+		light.m_xmf4Specular = XMFLOAT4(0.12f, 0.12f, 0.10f, 12.0f);
 		light.m_xmf3Position = pxmf3CeilingLightPositions[i];
-		light.m_xmf3Attenuation = XMFLOAT3(1.0f, 0.003f, 0.00022f);
+		light.m_xmf3Direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
+		light.m_xmf3Attenuation = XMFLOAT3(1.0f, 0.0045f, 0.00035f);
+		light.m_fFalloff = 8.0f;
+		light.m_fPhi = (float)cos(XMConvertToRadians(48.0f));
+		light.m_fTheta = (float)cos(XMConvertToRadians(22.0f));
 	}
 }
 
@@ -113,6 +117,7 @@ struct MAZE_MAP_DESC
 	int m_nHeight;
 	XMFLOAT4 m_xmf4FloorColor;
 	XMFLOAT4 m_xmf4RaisedFloorColor;
+	XMFLOAT4 m_xmf4CeilingColor;
 	XMFLOAT4 m_xmf4WallColor;
 	XMFLOAT4 m_xmf4StairColor;
 	XMFLOAT4 m_xmf4DoorColor;
@@ -145,6 +150,9 @@ static const float PLAYER_RAY_SHOT_RANGE = 500.0f;
 static const float PLAYER_RAY_SHOT_RADIUS = 10.0f;
 static const float PLAYER_RAY_SHOT_HEIGHT = 18.0f;
 static const float PLAYER_SHOT_EFFECT_DURATION = 0.05f;
+static const float MAZE_CEILING_THICKNESS = 2.0f;
+static const int CEILING_LIGHT_START_INDEX = 2;
+static const int CEILING_LIGHT_COUNT = 12;
 
 static const char g_pStage1Floor0Map[] =
 	"#######################"
@@ -224,8 +232,8 @@ static const char g_pStage2Floor1Map[] =
 
 static const MAZE_MAP_DESC g_pMazeMaps[] =
 {
-	{ { g_pStage1Floor0Map, g_pStage1Floor1Map }, MAZE_WIDTH, MAZE_HEIGHT, XMFLOAT4(0.78f, 0.78f, 0.76f, 1.0f), XMFLOAT4(0.78f, 0.78f, 0.76f, 1.0f), XMFLOAT4(0.05f, 0.18f, 0.82f, 1.0f), XMFLOAT4(0.95f, 0.78f, 0.08f, 1.0f), XMFLOAT4(0.00f, 0.88f, 0.82f, 1.0f) },
-	{ { g_pStage2Floor0Map, g_pStage2Floor1Map }, MAZE_WIDTH, MAZE_HEIGHT, XMFLOAT4(0.62f, 0.66f, 0.60f, 1.0f), XMFLOAT4(0.55f, 0.62f, 0.64f, 1.0f), XMFLOAT4(0.42f, 0.12f, 0.38f, 1.0f), XMFLOAT4(0.96f, 0.62f, 0.10f, 1.0f), XMFLOAT4(0.10f, 0.76f, 0.72f, 1.0f) }
+	{ { g_pStage1Floor0Map, g_pStage1Floor1Map }, MAZE_WIDTH, MAZE_HEIGHT, XMFLOAT4(0.78f, 0.78f, 0.76f, 1.0f), XMFLOAT4(0.78f, 0.78f, 0.76f, 1.0f), XMFLOAT4(0.64f, 0.64f, 0.62f, 1.0f), XMFLOAT4(0.05f, 0.18f, 0.82f, 1.0f), XMFLOAT4(0.95f, 0.78f, 0.08f, 1.0f), XMFLOAT4(0.00f, 0.88f, 0.82f, 1.0f) },
+	{ { g_pStage2Floor0Map, g_pStage2Floor1Map }, MAZE_WIDTH, MAZE_HEIGHT, XMFLOAT4(0.94f, 0.94f, 0.90f, 1.0f), XMFLOAT4(0.94f, 0.94f, 0.90f, 1.0f), XMFLOAT4(0.78f, 0.75f, 0.68f, 1.0f), XMFLOAT4(0.70f, 0.48f, 0.30f, 1.0f), XMFLOAT4(0.96f, 0.62f, 0.10f, 1.0f), XMFLOAT4(0.10f, 0.76f, 0.72f, 1.0f) }
 };
 
 static int GetStageIndexFromStageNumber(int nStage)
@@ -234,6 +242,47 @@ static int GetStageIndexFromStageNumber(int nStage)
 	if (nStageIndex < 0) nStageIndex = 0;
 	if (nStageIndex >= _countof(g_pMazeMaps)) nStageIndex = _countof(g_pMazeMaps) - 1;
 	return(nStageIndex);
+}
+
+static void ApplyStageCeilingSpotLights(LIGHT *pLights, int nStageIndex)
+{
+	if (!pLights) return;
+
+	static const XMFLOAT3 pxmf3StageCeilingLightPositions[][CEILING_LIGHT_COUNT] =
+	{
+		{
+			XMFLOAT3(-210.0f, 43.0f, -150.0f), XMFLOAT3(-30.0f, 43.0f, -150.0f), XMFLOAT3(180.0f, 43.0f, -120.0f),
+			XMFLOAT3(-210.0f, 43.0f, 60.0f), XMFLOAT3(0.0f, 43.0f, 30.0f), XMFLOAT3(180.0f, 43.0f, 120.0f),
+			XMFLOAT3(-210.0f, 93.0f, -120.0f), XMFLOAT3(0.0f, 93.0f, -120.0f), XMFLOAT3(180.0f, 93.0f, -120.0f),
+			XMFLOAT3(-210.0f, 93.0f, 90.0f), XMFLOAT3(0.0f, 93.0f, 90.0f), XMFLOAT3(180.0f, 93.0f, 90.0f)
+		},
+		{
+			XMFLOAT3(-210.0f, 43.0f, -150.0f), XMFLOAT3(0.0f, 43.0f, -150.0f), XMFLOAT3(210.0f, 43.0f, -150.0f),
+			XMFLOAT3(-180.0f, 43.0f, 0.0f), XMFLOAT3(30.0f, 43.0f, 30.0f), XMFLOAT3(210.0f, 43.0f, 120.0f),
+			XMFLOAT3(-210.0f, 93.0f, -180.0f), XMFLOAT3(30.0f, 93.0f, -150.0f), XMFLOAT3(210.0f, 93.0f, -120.0f),
+			XMFLOAT3(-210.0f, 93.0f, 60.0f), XMFLOAT3(0.0f, 93.0f, 120.0f), XMFLOAT3(210.0f, 93.0f, 180.0f)
+		}
+	};
+
+	if (nStageIndex < 0) nStageIndex = 0;
+	if (nStageIndex >= _countof(pxmf3StageCeilingLightPositions)) nStageIndex = _countof(pxmf3StageCeilingLightPositions) - 1;
+
+	for (int i = 0; i < CEILING_LIGHT_COUNT; i++)
+	{
+		LIGHT& light = pLights[CEILING_LIGHT_START_INDEX + i];
+		light.m_bEnable = true;
+		light.m_nType = SPOT_LIGHT;
+		light.m_fRange = 115.0f;
+		light.m_xmf4Ambient = XMFLOAT4(0.015f, 0.015f, 0.014f, 1.0f);
+		light.m_xmf4Diffuse = XMFLOAT4(0.62f, 0.60f, 0.50f, 1.0f);
+		light.m_xmf4Specular = XMFLOAT4(0.12f, 0.12f, 0.10f, 12.0f);
+		light.m_xmf3Position = pxmf3StageCeilingLightPositions[nStageIndex][i];
+		light.m_xmf3Direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
+		light.m_xmf3Attenuation = XMFLOAT3(1.0f, 0.0045f, 0.00035f);
+		light.m_fFalloff = 8.0f;
+		light.m_fPhi = (float)cos(XMConvertToRadians(48.0f));
+		light.m_fTheta = (float)cos(XMConvertToRadians(22.0f));
+	}
 }
 
 static XMFLOAT3 GetMazeCellPosition(int x, int z, int width, int height, float y)
@@ -803,6 +852,12 @@ void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *p
 						door.m_xmf3ClosedPosition = xmf3DoorPosition;
 						m_vDoors.push_back(door);
 					}
+
+					if (floor == 1)
+					{
+						XMFLOAT3 xmf3CeilingPosition = GetMazeCellPosition(x, z, map.m_nWidth, map.m_nHeight, fFloorHeight + MAZE_WALL_HEIGHT + (MAZE_CEILING_THICKNESS * 0.5f));
+						ppObjects.push_back(CreateColoredBoxObject(pd3dDevice, pd3dCommandList, xmf3CeilingPosition, XMFLOAT3(MAZE_CELL_SIZE, MAZE_CEILING_THICKNESS, MAZE_CELL_SIZE), map.m_xmf4CeilingColor));
+					}
 				}
 
 				char baseTile = GetMazeTileAtCell(map, 0, x, z);
@@ -942,6 +997,7 @@ void CScene::CreateShaderVariables(ID3D12Device *pd3dDevice, ID3D12GraphicsComma
 
 void CScene::UpdateShaderVariables(ID3D12GraphicsCommandList *pd3dCommandList)
 {
+	ApplyStageCeilingSpotLights(m_pLights, GetStageIndexFromStageNumber(m_nSelectedStage));
 	::memcpy(m_pcbMappedLights->m_pLights, m_pLights, sizeof(LIGHT) * m_nLights);
 	::memcpy(&m_pcbMappedLights->m_xmf4GlobalAmbient, &m_xmf4GlobalAmbient, sizeof(XMFLOAT4));
 	::memcpy(&m_pcbMappedLights->m_nLights, &m_nLights, sizeof(int));
