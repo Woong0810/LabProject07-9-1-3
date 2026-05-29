@@ -97,16 +97,16 @@ void CScene::BuildDefaultLightsAndMaterials()
 		LIGHT& light = m_pLights[i + 2];
 		light.m_bEnable = true;
 		light.m_nType = SPOT_LIGHT;
-		light.m_fRange = 115.0f;
+		light.m_fRange = 170.0f;
 		light.m_xmf4Ambient = XMFLOAT4(0.015f, 0.015f, 0.014f, 1.0f);
-		light.m_xmf4Diffuse = XMFLOAT4(0.62f, 0.60f, 0.50f, 1.0f);
+		light.m_xmf4Diffuse = XMFLOAT4(0.70f, 0.68f, 0.56f, 1.0f);
 		light.m_xmf4Specular = XMFLOAT4(0.12f, 0.12f, 0.10f, 12.0f);
 		light.m_xmf3Position = pxmf3CeilingLightPositions[i];
 		light.m_xmf3Direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
-		light.m_xmf3Attenuation = XMFLOAT3(1.0f, 0.0045f, 0.00035f);
+		light.m_xmf3Attenuation = XMFLOAT3(1.0f, 0.0032f, 0.00016f);
 		light.m_fFalloff = 8.0f;
-		light.m_fPhi = (float)cos(XMConvertToRadians(48.0f));
-		light.m_fTheta = (float)cos(XMConvertToRadians(22.0f));
+		light.m_fPhi = (float)cos(XMConvertToRadians(68.0f));
+		light.m_fTheta = (float)cos(XMConvertToRadians(34.0f));
 	}
 }
 
@@ -150,6 +150,8 @@ static const float PLAYER_RAY_SHOT_RANGE = 500.0f;
 static const float PLAYER_RAY_SHOT_RADIUS = 10.0f;
 static const float PLAYER_RAY_SHOT_HEIGHT = 18.0f;
 static const float PLAYER_SHOT_EFFECT_DURATION = 0.05f;
+static const float MAZE_FLOOR_THICKNESS = 2.0f;
+static const float MAZE_FLOOR_SURFACE_GAP = 0.08f;
 static const float MAZE_CEILING_THICKNESS = 2.0f;
 static const int CEILING_LIGHT_START_INDEX = 2;
 static const int CEILING_LIGHT_COUNT = 12;
@@ -272,16 +274,16 @@ static void ApplyStageCeilingSpotLights(LIGHT *pLights, int nStageIndex)
 		LIGHT& light = pLights[CEILING_LIGHT_START_INDEX + i];
 		light.m_bEnable = true;
 		light.m_nType = SPOT_LIGHT;
-		light.m_fRange = 115.0f;
+		light.m_fRange = 170.0f;
 		light.m_xmf4Ambient = XMFLOAT4(0.015f, 0.015f, 0.014f, 1.0f);
-		light.m_xmf4Diffuse = XMFLOAT4(0.62f, 0.60f, 0.50f, 1.0f);
+		light.m_xmf4Diffuse = XMFLOAT4(0.70f, 0.68f, 0.56f, 1.0f);
 		light.m_xmf4Specular = XMFLOAT4(0.12f, 0.12f, 0.10f, 12.0f);
 		light.m_xmf3Position = pxmf3StageCeilingLightPositions[nStageIndex][i];
 		light.m_xmf3Direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
-		light.m_xmf3Attenuation = XMFLOAT3(1.0f, 0.0045f, 0.00035f);
+		light.m_xmf3Attenuation = XMFLOAT3(1.0f, 0.0032f, 0.00016f);
 		light.m_fFalloff = 8.0f;
-		light.m_fPhi = (float)cos(XMConvertToRadians(48.0f));
-		light.m_fTheta = (float)cos(XMConvertToRadians(22.0f));
+		light.m_fPhi = (float)cos(XMConvertToRadians(68.0f));
+		light.m_fTheta = (float)cos(XMConvertToRadians(34.0f));
 	}
 }
 
@@ -813,8 +815,8 @@ void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *p
 		{
 			for (int x = 0; x < map.m_nWidth; x++)
 			{
-				XMFLOAT3 xmf3BaseFloorPosition = GetMazeCellPosition(x, z, map.m_nWidth, map.m_nHeight, -1.0f);
-				ppObjects.push_back(CreateColoredBoxObject(pd3dDevice, pd3dCommandList, xmf3BaseFloorPosition, XMFLOAT3(MAZE_CELL_SIZE, 2.0f, MAZE_CELL_SIZE), map.m_xmf4FloorColor));
+				XMFLOAT3 xmf3BaseFloorPosition = GetMazeCellPosition(x, z, map.m_nWidth, map.m_nHeight, -(MAZE_FLOOR_THICKNESS * 0.5f) - MAZE_FLOOR_SURFACE_GAP);
+				ppObjects.push_back(CreateColoredBoxObject(pd3dDevice, pd3dCommandList, xmf3BaseFloorPosition, XMFLOAT3(MAZE_CELL_SIZE, MAZE_FLOOR_THICKNESS, MAZE_CELL_SIZE), map.m_xmf4FloorColor));
 
 				for (int floor = 0; floor < MAZE_FLOOR_COUNT; floor++)
 				{
@@ -824,8 +826,8 @@ void CScene::BuildObjects(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *p
 					float fFloorHeight = (floor == 1) ? MAZE_SECOND_FLOOR_HEIGHT : 0.0f;
 					if (floor == 1)
 					{
-						XMFLOAT3 xmf3RaisedFloorPosition = GetMazeCellPosition(x, z, map.m_nWidth, map.m_nHeight, fFloorHeight - 1.0f);
-						ppObjects.push_back(CreateColoredBoxObject(pd3dDevice, pd3dCommandList, xmf3RaisedFloorPosition, XMFLOAT3(MAZE_CELL_SIZE, 2.0f, MAZE_CELL_SIZE), map.m_xmf4RaisedFloorColor));
+						XMFLOAT3 xmf3RaisedFloorPosition = GetMazeCellPosition(x, z, map.m_nWidth, map.m_nHeight, fFloorHeight - (MAZE_FLOOR_THICKNESS * 0.5f) - MAZE_FLOOR_SURFACE_GAP);
+						ppObjects.push_back(CreateColoredBoxObject(pd3dDevice, pd3dCommandList, xmf3RaisedFloorPosition, XMFLOAT3(MAZE_CELL_SIZE, MAZE_FLOOR_THICKNESS, MAZE_CELL_SIZE), map.m_xmf4RaisedFloorColor));
 					}
 
 					if (tile == '#')
