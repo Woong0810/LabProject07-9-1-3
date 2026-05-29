@@ -5,12 +5,51 @@
 #include "stdafx.h"
 #include "Scene.h"
 
+#include <mmsystem.h>
+
+#pragma comment(lib, "winmm.lib")
+
+static const wchar_t *BGM_ALIAS = L"GameBgm";
+static const wchar_t *TITLE_SCREEN_BGM_PATH = L"Sound\\title_screen_bgm.mp3";
+static const wchar_t *STAGE_1_BGM_PATH = L"Sound\\stage_1_bgm.mp3";
+static const wchar_t *STAGE_2_BGM_PATH = L"Sound\\stage_2_bgm.mp3";
+static const wchar_t *SHOOT_SOUND_EFFECT_PATH = L"Sound\\shoot_sound_effect.wav";
+static const wchar_t *HIT_SOUND_EFFECT_PATH = L"Sound\\hit_sound_effect.wav";
+
+static void StopBgm()
+{
+	wchar_t pstrCommand[128];
+	swprintf_s(pstrCommand, L"stop %s", BGM_ALIAS);
+	mciSendString(pstrCommand, NULL, 0, NULL);
+	swprintf_s(pstrCommand, L"close %s", BGM_ALIAS);
+	mciSendString(pstrCommand, NULL, 0, NULL);
+}
+
+static void PlayBgm(const wchar_t *pstrFilePath)
+{
+	StopBgm();
+
+	wchar_t pstrCommand[512];
+	swprintf_s(pstrCommand, L"open \"%s\" type mpegvideo alias %s", pstrFilePath, BGM_ALIAS);
+	if (mciSendString(pstrCommand, NULL, 0, NULL) != 0) return;
+
+	swprintf_s(pstrCommand, L"play %s repeat", BGM_ALIAS);
+	mciSendString(pstrCommand, NULL, 0, NULL);
+}
+
+static void PlaySoundEffect(const wchar_t *pstrFilePath)
+{
+	PlaySound(pstrFilePath, NULL, SND_FILENAME | SND_ASYNC | SND_NODEFAULT);
+}
+
 CScene::CScene()
 {
+	PlayBgm(TITLE_SCREEN_BGM_PATH);
 }
 
 CScene::~CScene()
 {
+	StopBgm();
 }
 
 void CScene::BuildDefaultLightsAndMaterials()
@@ -604,6 +643,7 @@ void CScene::BeginStage(int nStage)
 	m_bGameOver = false;
 	m_fHitEffectTime = 0.0f;
 	m_nScreenMode = SCENE_SCREEN_PLAYING;
+	PlayBgm((m_nSelectedStage == 2) ? STAGE_2_BGM_PATH : STAGE_1_BGM_PATH);
 	if (m_pPlayer)
 	{
 		const MAZE_MAP_DESC& map = g_pMazeMaps[GetStageIndexFromStageNumber(m_nSelectedStage)];
@@ -616,6 +656,7 @@ void CScene::DamagePlayer(int nDamage, const XMFLOAT3& xmf3HitDirection)
 	if ((m_nScreenMode != SCENE_SCREEN_PLAYING) || m_bGameOver) return;
 	if (m_bDebugNoDamage) return;
 
+	PlaySoundEffect(HIT_SOUND_EFFECT_PATH);
 	m_fHitEffectTime = PLAYER_HIT_EFFECT_DURATION;
 
 	if (m_pPlayer)
@@ -1112,6 +1153,7 @@ void CScene::AnimateObjects(float fTimeElapsed)
 				xmf3EnemyPosition = enemy.m_pObject->GetPosition();
 				XMFLOAT3 xmf3FireDirection = XMFLOAT3(xmf3PlayerPosition.x - xmf3EnemyPosition.x, 0.0f, xmf3PlayerPosition.z - xmf3EnemyPosition.z);
 				if (Vector3::Length(xmf3FireDirection) > 0.001f) SetObjectLookDirectionXZ(enemy.m_pObject, xmf3EnemyPosition, Vector3::Normalize(xmf3FireDirection));
+				PlaySoundEffect(SHOOT_SOUND_EFFECT_PATH);
 				DamagePlayer(ENEMY_FIRE_DAMAGE, xmf3FireDirection);
 				enemy.m_fFireCooldown = ENEMY_FIRE_INTERVAL;
 			}
@@ -1164,6 +1206,8 @@ bool CScene::FireRayShot()
 {
 	if (!m_pPlayer || !m_pPlayer->GetCamera()) return(false);
 
+	PlaySoundEffect(SHOOT_SOUND_EFFECT_PATH);
+
 	CCamera *pCamera = m_pPlayer->GetCamera();
 	XMFLOAT3 xmf3RayOrigin = pCamera->GetPosition();
 	XMFLOAT3 xmf3RayDirection = pCamera->GetLookVector();
@@ -1196,6 +1240,7 @@ bool CScene::FireRayShot()
 	if (nBestEnemy < 0) return(false);
 
 	ENEMY_OBJECT& enemy = m_vEnemies[nBestEnemy];
+	PlaySoundEffect(HIT_SOUND_EFFECT_PATH);
 	enemy.m_nHealth--;
 	if (enemy.m_nHealth <= 0)
 	{
