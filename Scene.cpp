@@ -721,7 +721,7 @@ void CScene::DamagePlayer(int nDamage, const XMFLOAT3& xmf3HitDirection)
 		{
 			xmf3KnockbackDirection = Vector3::Normalize(xmf3KnockbackDirection);
 			XMFLOAT3 xmf3OldPosition = m_pPlayer->GetPosition();
-			m_pPlayer->Move(Vector3::ScalarProduct(xmf3KnockbackDirection, PLAYER_HIT_KNOCKBACK_DISTANCE, false), false);
+			m_pPlayer->Move(Vector3::ScalarProduct(xmf3KnockbackDirection, PLAYER_HIT_KNOCKBACK_DISTANCE, false));
 			ResolvePlayerCollision(m_pPlayer, xmf3OldPosition, false);
 		}
 	}
@@ -1104,12 +1104,6 @@ bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 			return(false);
 		}
 	}
-	return(false);
-}
-
-bool CScene::ProcessInput(UCHAR *pKeysBuffer)
-{
-	if (m_nScreenMode != SCENE_SCREEN_PLAYING) return(true);
 	return(false);
 }
 

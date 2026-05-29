@@ -322,9 +322,10 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 				case VK_RETURN:
 					break;
 				case VK_F1:
-				case VK_F2:
+					m_pCamera = m_pPlayer->ChangeCamera(FIRST_PERSON_CAMERA, m_GameTimer.GetTimeElapsed());
+					break;
 				case VK_F3:
-					m_pCamera = m_pPlayer->ChangeCamera((DWORD)(wParam - VK_F1 + 1), m_GameTimer.GetTimeElapsed());
+					m_pCamera = m_pPlayer->ChangeCamera(THIRD_PERSON_CAMERA, m_GameTimer.GetTimeElapsed());
 					break;
 				case VK_F9:
 					ChangeSwapChainState();
@@ -408,9 +409,9 @@ void CGameFramework::BuildObjects()
 	m_pScene = new CScene();
 	if (m_pScene) m_pScene->BuildObjects(m_pd3dDevice, m_pd3dCommandList);
 
-	CAirplanePlayer *pAirplanePlayer = new CAirplanePlayer(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature());
-	pAirplanePlayer->SetPosition(XMFLOAT3(-200.0f, 8.0f, -140.0f));
-	m_pScene->m_pPlayer = m_pPlayer = pAirplanePlayer;
+	CSoldierPlayer *pSoldierPlayer = new CSoldierPlayer(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature());
+	pSoldierPlayer->SetPosition(XMFLOAT3(-200.0f, 8.0f, -140.0f));
+	m_pScene->m_pPlayer = m_pPlayer = pSoldierPlayer;
 	m_pCamera = m_pPlayer->GetCamera();
 
 	m_pMenuCamera = new CCamera();
@@ -460,9 +461,7 @@ void CGameFramework::ProcessInput()
 	float fTimeElapsed = m_GameTimer.GetTimeElapsed();
 
 	static UCHAR pKeysBuffer[256];
-	bool bProcessedByScene = false;
-	if (GetKeyboardState(pKeysBuffer) && m_pScene) bProcessedByScene = m_pScene->ProcessInput(pKeysBuffer);
-	if (!bProcessedByScene)
+	if (GetKeyboardState(pKeysBuffer))
 	{
 		DWORD dwDirection = 0;
 		if (pKeysBuffer['W'] & 0xF0) dwDirection |= DIR_FORWARD;
@@ -492,7 +491,7 @@ void CGameFramework::ProcessInput()
 				else
 					m_pPlayer->Rotate(cyDelta, cxDelta, 0.0f);
 			}
-			if (dwDirection) m_pPlayer->Move(dwDirection, PLAYER_WALK_SPEED * fTimeElapsed, false);
+			if (dwDirection) m_pPlayer->Move(dwDirection, PLAYER_WALK_SPEED * fTimeElapsed);
 		}
 	}
 	m_pPlayer->Update(fTimeElapsed);

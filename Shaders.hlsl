@@ -8,9 +8,8 @@ struct MATERIAL
 
 cbuffer cbCameraInfo : register(b1)
 {
-	matrix					gmtxView : packoffset(c0);
-	matrix					gmtxProjection : packoffset(c4);
-	float3					gvCameraPosition : packoffset(c8);
+	matrix					gmtxViewProjection : packoffset(c0);
+	float3					gvCameraPosition : packoffset(c4);
 };
 
 #define MATERIALS_IN_HIERARCHY		8
@@ -55,7 +54,7 @@ VS_LIGHTING_OUTPUT VSLighting(VS_LIGHTING_INPUT input)
 
 	output.normalW = mul(input.normal, (float3x3)gmtxGameObject);
 	output.positionW = (float3)mul(float4(input.position, 1.0f), gmtxGameObject);
-	output.position = mul(mul(float4(output.positionW, 1.0f), gmtxView), gmtxProjection);
+	output.position = mul(float4(output.positionW, 1.0f), gmtxViewProjection);
 #ifdef _WITH_VERTEX_LIGHTING
 	output.normalW = normalize(output.normalW);
 	output.color = Lighting(output.positionW, output.normalW);
