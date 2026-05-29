@@ -431,6 +431,7 @@ void CGameFramework::BuildObjects()
 	if (m_pPlayer) m_pPlayer->ReleaseUploadBuffers();
 
 	m_GameTimer.Reset();
+	if (m_pScene) m_pScene->StartTitleBgm();
 }
 
 void CGameFramework::ReleaseObjects()

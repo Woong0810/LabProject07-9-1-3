@@ -114,6 +114,7 @@ public:
 	int GetPlayerHealth() const { return(m_nPlayerHealth); }
 	SCENE_SCREEN_MODE GetScreenMode() const { return(m_nScreenMode); }
 	void BeginStage(int nStage);
+	void StartTitleBgm();
 	void DamagePlayer(int nDamage, const XMFLOAT3& xmf3HitDirection);
 	void HealPlayer();
 	void KillAllEnemiesInStage();

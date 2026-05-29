@@ -44,12 +44,16 @@ static void PlaySoundEffect(const wchar_t *pstrFilePath)
 
 CScene::CScene()
 {
-	PlayBgm(TITLE_SCREEN_BGM_PATH);
 }
 
 CScene::~CScene()
 {
 	StopBgm();
+}
+
+void CScene::StartTitleBgm()
+{
+	PlayBgm(TITLE_SCREEN_BGM_PATH);
 }
 
 void CScene::BuildDefaultLightsAndMaterials()
@@ -1240,7 +1244,6 @@ bool CScene::FireRayShot()
 	if (nBestEnemy < 0) return(false);
 
 	ENEMY_OBJECT& enemy = m_vEnemies[nBestEnemy];
-	PlaySoundEffect(HIT_SOUND_EFFECT_PATH);
 	enemy.m_nHealth--;
 	if (enemy.m_nHealth <= 0)
 	{
